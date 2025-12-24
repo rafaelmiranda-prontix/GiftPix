@@ -439,7 +439,19 @@ Não serão realizadas transferências reais neste ambiente.
 
 ## Deploy
 
-### Docker (Recomendado)
+### Render (Recomendado)
+
+O projeto está configurado para deploy no Render. Veja o guia completo em [RENDER_DEPLOY.md](RENDER_DEPLOY.md).
+
+**Quick Start:**
+1. Conecte seu repositório no [Render Dashboard](https://dashboard.render.com)
+2. Render detectará automaticamente o arquivo `render.yaml`
+3. Configure as variáveis de ambiente (veja [ENV_VARIABLES.md](ENV_VARIABLES.md))
+4. Deploy automático!
+
+**Checklist de Deploy:** [DEPLOY_CHECKLIST.md](DEPLOY_CHECKLIST.md)
+
+### Docker
 
 Crie um `Dockerfile`:
 

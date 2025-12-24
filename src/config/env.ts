@@ -29,6 +29,9 @@ interface EnvConfig {
   logs: {
     level: string;
   };
+  cors: {
+    allowedOrigins: string[];
+  };
 }
 
 const getEnvVar = (key: string, defaultValue?: string): string => {
@@ -65,5 +68,8 @@ export const config: EnvConfig = {
   },
   logs: {
     level: getEnvVar('LOG_LEVEL', 'info'),
+  },
+  cors: {
+    allowedOrigins: getEnvVar('ALLOWED_ORIGINS', '').split(',').filter(Boolean),
   },
 };

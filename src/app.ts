@@ -14,13 +14,37 @@ export const createApp = (): Application => {
   app.use(helmet());
 
   // CORS
-  app.use(cors({
-    origin: config.nodeEnv === 'production'
-      ? ['https://yourdomain.com'] // Configure seus domínios permitidos
-      : '*',
+  const corsOptions: cors.CorsOptions = {
+    origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
+      if (config.nodeEnv === 'development') {
+        callback(null, true);
+        return;
+      }
+
+      // Se não há origem (ex: requisições de mesma origem, Postman, etc)
+      if (!origin) {
+        callback(null, true);
+        return;
+      }
+
+      // Se há origens configuradas, verificar
+      if (config.cors.allowedOrigins.length > 0) {
+        if (config.cors.allowedOrigins.includes(origin)) {
+          callback(null, true);
+        } else {
+          callback(new Error('Not allowed by CORS'));
+        }
+      } else {
+        // Se não há origens configuradas, permitir todas (não recomendado para produção)
+        callback(null, true);
+      }
+    },
     methods: ['GET', 'POST'],
     allowedHeaders: ['Content-Type', 'x-api-key'],
-  }));
+    credentials: true,
+  };
+
+  app.use(cors(corsOptions));
 
   // Rate limiting
   const limiter = rateLimit({
