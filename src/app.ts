@@ -2,6 +2,7 @@ import express, { Application } from 'express';
 import helmet from 'helmet';
 import cors from 'cors';
 import rateLimit from 'express-rate-limit';
+import path from 'path';
 import { config } from './config/env';
 import { logger } from './utils/logger';
 import routes from './routes';
@@ -67,6 +68,9 @@ export const createApp = (): Application => {
   app.use(express.json());
   app.use(express.urlencoded({ extended: true }));
 
+  // Servir arquivos estáticos
+  app.use(express.static(path.join(__dirname, '../public')));
+
   // Request logging
   app.use((req, _res, next) => {
     logger.info('Incoming request', {
@@ -80,6 +84,11 @@ export const createApp = (): Application => {
 
   // Routes
   app.use('/api', routes);
+
+  // Página de Natal (pública)
+  app.get('/natal', (_req, res) => {
+    res.sendFile(path.join(__dirname, '../public/natal.html'));
+  });
 
   // Root endpoint
   app.get('/', (_req, res) => {

@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🎄 Feliz Natal! 🎄</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 50%, #1e3c72 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* Neve animada */
+        .snowflake {
+            position: absolute;
+            top: -10px;
+            color: white;
+            font-size: 1em;
+            font-family: Arial;
+            text-shadow: 0 0 5px white;
+            animation: fall linear infinite;
+            opacity: 0.8;
+        }
+
+        @keyframes fall {
+            to {
+                transform: translateY(100vh) rotate(360deg);
+            }
+        }
+
+        .container {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 40px;
+            max-width: 600px;
+            width: 100%;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            text-align: center;
+            position: relative;
+            z-index: 10;
+            animation: fadeIn 0.8s ease-in;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .title {
+            font-size: 3em;
+            color: #c41e3a;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% {
+                transform: scale(1);
+            }
+            50% {
+                transform: scale(1.05);
+            }
+        }
+
+        .subtitle {
+            font-size: 1.5em;
+            color: #2d5016;
+            margin-bottom: 30px;
+            font-weight: 600;
+        }
+
+        .gift-icon {
+            font-size: 4em;
+            margin: 20px 0;
+            animation: bounce 1s ease-in-out infinite;
+        }
+
+        @keyframes bounce {
+            0%, 100% {
+                transform: translateY(0);
+            }
+            50% {
+                transform: translateY(-10px);
+            }
+        }
+
+        .valor-box {
+            background: linear-gradient(135deg, #ffd700 0%, #ffed4e 100%);
+            padding: 20px;
+            border-radius: 15px;
+            margin: 30px 0;
+            box-shadow: 0 5px 15px rgba(255, 215, 0, 0.4);
+        }
+
+        .valor-label {
+            font-size: 1.2em;
+            color: #8b6914;
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+
+        .valor {
+            font-size: 2.5em;
+            color: #c41e3a;
+            font-weight: bold;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .form-group {
+            margin: 25px 0;
+            text-align: left;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 600;
+            font-size: 1.1em;
+        }
+
+        input {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #ddd;
+            border-radius: 10px;
+            font-size: 1.1em;
+            transition: all 0.3s ease;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: #c41e3a;
+            box-shadow: 0 0 10px rgba(196, 30, 58, 0.3);
+        }
+
+        .help-text {
+            font-size: 0.9em;
+            color: #666;
+            margin-top: 5px;
+            font-style: italic;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #c41e3a 0%, #e63946 100%);
+            color: white;
+            padding: 15px 40px;
+            border: none;
+            border-radius: 10px;
+            font-size: 1.2em;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 5px 15px rgba(196, 30, 58, 0.4);
+            margin-top: 20px;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(196, 30, 58, 0.6);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .qrcode-container {
+            margin-top: 30px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 15px;
+            display: none;
+        }
+
+        .qrcode-container.show {
+            display: block;
+            animation: slideDown 0.5s ease-out;
+        }
+
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .qrcode-image {
+            max-width: 300px;
+            width: 100%;
+            margin: 20px auto;
+            display: block;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .success-message {
+            color: #2d5016;
+            font-size: 1.2em;
+            font-weight: 600;
+            margin-top: 15px;
+        }
+
+        .error-message {
+            color: #c41e3a;
+            background: #ffe6e6;
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 20px;
+            display: none;
+        }
+
+        .error-message.show {
+            display: block;
+            animation: shake 0.5s;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-10px); }
+            75% { transform: translateX(10px); }
+        }
+
+        .loading {
+            display: none;
+            margin: 20px 0;
+        }
+
+        .loading.show {
+            display: block;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #c41e3a;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .instructions {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 15px;
+            border-radius: 5px;
+            margin-top: 20px;
+            text-align: left;
+        }
+
+        .instructions h3 {
+            color: #856404;
+            margin-bottom: 10px;
+        }
+
+        .instructions ol {
+            color: #856404;
+            padding-left: 20px;
+        }
+
+        .instructions li {
+            margin: 8px 0;
+        }
+
+        @media (max-width: 600px) {
+            .container {
+                padding: 20px;
+            }
+
+            .title {
+                font-size: 2em;
+            }
+
+            .subtitle {
+                font-size: 1.2em;
+            }
+
+            .valor {
+                font-size: 2em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Neve animada -->
+    <div id="snowflakes"></div>
+
+    <div class="container">
+        <h1 class="title">🎄 Feliz Natal! 🎄</h1>
+        <p class="subtitle">Um presente especial para você!</p>
+        <div class="gift-icon">🎁</div>
+
+        <div class="valor-box">
+            <div class="valor-label">Valor do Presente</div>
+            <div class="valor">R$ 300,00</div>
+        </div>
+
+        <form id="pixForm">
+            <div class="form-group">
+                <label for="chave_pix">Digite sua Chave PIX:</label>
+                <input 
+                    type="text" 
+                    id="chave_pix" 
+                    name="chave_pix" 
+                    placeholder="exemplo@email.com ou CPF ou telefone"
+                    required
+                >
+                <div class="help-text">
+                    Pode ser: e-mail, CPF (11 dígitos), CNPJ (14 dígitos), telefone (+55...) ou chave aleatória
+                </div>
+            </div>
+
+            <button type="submit" class="btn" id="submitBtn">
+                🎁 Gerar QR Code do Presente
+            </button>
+        </form>
+
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <p style="margin-top: 10px; color: #666;">Gerando seu presente...</p>
+        </div>
+
+        <div class="error-message" id="errorMessage"></div>
+
+        <div class="qrcode-container" id="qrcodeContainer">
+            <div class="success-message">✨ Seu QR Code foi gerado! ✨</div>
+            <img id="qrcodeImage" class="qrcode-image" alt="QR Code PIX">
+            <div class="instructions">
+                <h3>📱 Como usar:</h3>
+                <ol>
+                    <li>Abra o app do seu banco</li>
+                    <li>Escaneie o QR Code acima</li>
+                    <li>Confirme o pagamento de R$ 300,00</li>
+                    <li>Pronto! O presente será enviado automaticamente! 🎉</li>
+                </ol>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Criar neve animada
+        function createSnowflakes() {
+            const snowflakesContainer = document.getElementById('snowflakes');
+            const snowflakes = ['❄', '❅', '❆'];
+            
+            for (let i = 0; i < 50; i++) {
+                const snowflake = document.createElement('div');
+                snowflake.className = 'snowflake';
+                snowflake.textContent = snowflakes[Math.floor(Math.random() * snowflakes.length)];
+                snowflake.style.left = Math.random() * 100 + '%';
+                snowflake.style.animationDuration = (Math.random() * 3 + 2) + 's';
+                snowflake.style.animationDelay = Math.random() * 2 + 's';
+                snowflakesContainer.appendChild(snowflake);
+            }
+        }
+
+        // Detectar URL da API (local ou produção)
+        function getApiUrl() {
+            // Se estiver em produção, usar a URL do Render
+            if (window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
+                return window.location.origin + '/api';
+            }
+            return 'http://localhost:3000/api';
+        }
+
+        // Detectar API Key (pode ser configurada ou usar uma padrão)
+        function getApiKey() {
+            // Opção 1: Via URL (recomendado)
+            // Use: /natal?api_key=SUA_CHAVE
+            const urlParams = new URLSearchParams(window.location.search);
+            const apiKeyFromUrl = urlParams.get('api_key');
+            
+            if (apiKeyFromUrl) {
+                return apiKeyFromUrl;
+            }
+            
+            // Opção 2: Configure aqui sua API Key padrão
+            // ATENÇÃO: Não commite este arquivo com a chave real em produção!
+            return 'sua_chave_secreta_aqui';
+        }
+
+        // Formulário
+        document.getElementById('pixForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const chavePix = document.getElementById('chave_pix').value.trim();
+            const submitBtn = document.getElementById('submitBtn');
+            const loading = document.getElementById('loading');
+            const errorMessage = document.getElementById('errorMessage');
+            const qrcodeContainer = document.getElementById('qrcodeContainer');
+            
+            // Validar chave PIX
+            if (!chavePix) {
+                showError('Por favor, digite sua chave PIX!');
+                return;
+            }
+
+            // Mostrar loading
+            submitBtn.disabled = true;
+            loading.classList.add('show');
+            errorMessage.classList.remove('show');
+            qrcodeContainer.classList.remove('show');
+
+            try {
+                const apiUrl = getApiUrl();
+                const apiKey = getApiKey();
+
+                // Gerar QR Code (usar rota de Natal)
+                const response = await fetch(`${apiUrl}/qrcode/generate`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'x-api-key': apiKey
+                    },
+                    body: JSON.stringify({
+                        chave_pix: chavePix,
+                        valor: 300.00,
+                        descricao: 'Presente de Natal'
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    // Mostrar QR Code
+                    document.getElementById('qrcodeImage').src = result.data.qrcode;
+                    qrcodeContainer.classList.add('show');
+                    
+                    // Scroll suave até o QR Code
+                    qrcodeContainer.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                } else {
+                    showError(result.error?.message || 'Erro ao gerar QR Code. Tente novamente!');
+                }
+            } catch (error) {
+                console.error('Erro:', error);
+                showError('Erro ao conectar com o servidor. Verifique se a API está rodando!');
+            } finally {
+                submitBtn.disabled = false;
+                loading.classList.remove('show');
+            }
+        });
+
+        function showError(message) {
+            const errorMessage = document.getElementById('errorMessage');
+            errorMessage.textContent = '❌ ' + message;
+            errorMessage.classList.add('show');
+        }
+
+        // Inicializar neve
+        createSnowflakes();
+    </script>
+</body>
+</html>
+

@@ -20,6 +20,87 @@ router.get('/health', (_req, res) => {
 });
 
 /**
+ * Rota pública para processar PIX de Natal via QR Code
+ * Esta rota é acessada quando o QR Code é escaneado
+ * Aceita apenas valores de R$ 300,00 para segurança
+ */
+router.get('/natal/pix', async (req, res, next): Promise<void> => {
+  try {
+    const { chave_pix, valor } = req.query;
+
+    if (!chave_pix) {
+      res.status(400).json({
+        success: false,
+        error: {
+          code: 'MISSING_PARAMETERS',
+          message: 'chave_pix é obrigatória',
+        },
+      });
+      return;
+    }
+
+    const valorNum = parseFloat(valor as string) || 300.00;
+
+    // Validar que o valor é exatamente 300,00 (segurança)
+    if (Math.abs(valorNum - 300.00) > 0.01) {
+      res.status(400).json({
+        success: false,
+        error: {
+          code: 'INVALID_AMOUNT',
+          message: 'Esta rota aceita apenas valores de R$ 300,00',
+        },
+      });
+      return;
+    }
+
+    // Processar o payout usando o controller
+    const pixPayoutRequest = {
+      chave_pix: chave_pix as string,
+      valor: 300.00,
+      descricao: 'Presente de Natal 🎄',
+    };
+
+    // Criar objetos req/res mockados para o controller
+    const mockReq = {
+      body: pixPayoutRequest,
+    } as any;
+
+    let responseData: any = null;
+    let statusCode = 200;
+    let responseSent = false;
+
+    const mockRes = {
+      status: (code: number) => {
+        statusCode = code;
+        return {
+          json: (data: any) => {
+            responseData = data;
+            if (!responseSent) {
+              res.status(statusCode).json(data);
+              responseSent = true;
+            }
+          },
+        };
+      },
+    } as any;
+
+    // Processar o payout
+    await pixPayoutController.createPayout(mockReq, mockRes, (err: any) => {
+      if (err) {
+        next(err);
+        return;
+      }
+      if (!responseSent && responseData) {
+        res.status(statusCode).json(responseData);
+        responseSent = true;
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
  * Rotas de PIX Payout (protegidas)
  */
 router.post(

@@ -12,7 +12,7 @@ export class QRCodeGenerator {
   /**
    * Gera URL para requisição de payout PIX
    */
-  generatePayoutUrl(request: QRCodeGenerationRequest): string {
+  generatePayoutUrl(request: QRCodeGenerationRequest, useNatalRoute: boolean = false): string {
     const params = new URLSearchParams({
       chave_pix: request.chave_pix,
       valor: request.valor.toString(),
@@ -22,14 +22,19 @@ export class QRCodeGenerator {
       params.append('descricao', request.descricao);
     }
 
+    // Se for para a página de Natal, usar rota pública
+    if (useNatalRoute) {
+      return `${this.baseUrl}/api/natal/pix?${params.toString()}`;
+    }
+
     return `${this.baseUrl}/api/pix-payout?${params.toString()}`;
   }
 
   /**
    * Gera QR Code como Data URL (base64)
    */
-  async generateQRCodeDataURL(request: QRCodeGenerationRequest): Promise<string> {
-    const url = this.generatePayoutUrl(request);
+  async generateQRCodeDataURL(request: QRCodeGenerationRequest, useNatalRoute: boolean = false): Promise<string> {
+    const url = this.generatePayoutUrl(request, useNatalRoute);
 
     try {
       const qrCodeDataURL = await QRCode.toDataURL(url, {

@@ -46,12 +46,12 @@ process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
 process.on('SIGINT', () => gracefulShutdown('SIGINT'));
 
 // Handle uncaught errors
-process.on('uncaughtException', (error) => {
+process.on('uncaughtException', (error: Error) => {
   logger.error('Uncaught Exception', { error: error.message, stack: error.stack });
   gracefulShutdown('UNCAUGHT_EXCEPTION');
 });
 
-process.on('unhandledRejection', (reason, promise) => {
+process.on('unhandledRejection', (reason: unknown, promise: Promise<unknown>) => {
   logger.error('Unhandled Rejection', { reason, promise });
 });
 
