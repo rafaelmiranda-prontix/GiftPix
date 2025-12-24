@@ -29,6 +29,7 @@ export interface PagBankTransferResponse {
     type: string;
     pix_key: string;
   };
+  description?: string;
 }
 
 export interface ApiResponse<T = any> {

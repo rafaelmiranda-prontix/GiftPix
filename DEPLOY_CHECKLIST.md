@@ -24,6 +24,7 @@ Use este checklist para garantir que tudo está configurado corretamente antes d
 
 ### Build
 - [ ] `npm run build` funciona localmente
+- [ ] `npm start` funciona localmente (faz build e inicia)
 - [ ] Não há erros de TypeScript
 - [ ] Arquivo `dist/server.js` é gerado corretamente
 
@@ -39,9 +40,11 @@ Use este checklist para garantir que tudo está configurado corretamente antes d
 - [ ] Repositório conectado ao Render
 - [ ] Tipo de serviço: **Web Service**
 - [ ] Environment: **Node**
-- [ ] Build Command: `npm ci && npm run build`
-- [ ] Start Command: `npm start`
+- [ ] Build Command: `yarn install` (ou `npm install`)
+- [ ] Start Command: `yarn start` (ou `npm start`)
 - [ ] Health Check Path: `/api/health`
+
+**Nota**: O script `start` executa o build automaticamente antes de iniciar.
 
 ### Variáveis de Ambiente no Render
 - [ ] Todas as variáveis obrigatórias configuradas

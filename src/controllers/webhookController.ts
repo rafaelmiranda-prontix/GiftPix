@@ -12,7 +12,7 @@ export class WebhookController {
   async authorizeTransfer(
     req: Request,
     res: Response,
-    next: NextFunction
+    _next: NextFunction
   ): Promise<void> {
     try {
       const webhookData = req.body;
@@ -28,7 +28,6 @@ export class WebhookController {
         id,
         value,
         pixAddressKey,
-        description,
       } = webhookData.transfer || {};
 
       // Validações customizadas
@@ -61,8 +60,8 @@ export class WebhookController {
       // }
 
       // 4. Validações de horário (exemplo - apenas em horário comercial)
-      const now = new Date();
-      const hour = now.getHours();
+      // const now = new Date();
+      // const hour = now.getHours();
       // if (hour < 8 || hour > 18) {
       //   authorized = false;
       //   denialReason = 'Transferências permitidas apenas das 8h às 18h';
@@ -105,7 +104,7 @@ export class WebhookController {
   async handleTransferNotification(
     req: Request,
     res: Response,
-    next: NextFunction
+    _next: NextFunction
   ): Promise<void> {
     try {
       const webhookData = req.body;
@@ -118,8 +117,6 @@ export class WebhookController {
       const {
         id,
         status,
-        value,
-        pixAddressKey,
       } = webhookData.transfer || {};
 
       // Atualizar status da transação local
@@ -170,18 +167,20 @@ export class WebhookController {
   /**
    * Exemplo: Calcular total de transferências do dia
    * Implemente conforme sua necessidade
+   * 
+   * @deprecated Método não utilizado atualmente
    */
-  private async getDailyTotal(): Promise<number> {
-    const transactions = await transactionStore.getAll();
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+  // private async getDailyTotal(): Promise<number> {
+  //   const transactions = await transactionStore.getAll();
+  //   const today = new Date();
+  //   today.setHours(0, 0, 0, 0);
 
-    const dailyTransactions = transactions.filter(
-      t => t.created_at >= today && t.status === 'completed'
-    );
+  //   const dailyTransactions = transactions.filter(
+  //     t => t.created_at >= today && t.status === 'completed'
+  //   );
 
-    return dailyTransactions.reduce((sum, t) => sum + t.valor, 0);
-  }
+  //   return dailyTransactions.reduce((sum, t) => sum + t.valor, 0);
+  // }
 }
 
 export const webhookController = new WebhookController();

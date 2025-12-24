@@ -9,7 +9,7 @@ const router = Router();
 /**
  * Health check endpoint (público)
  */
-router.get('/health', (req, res) => {
+router.get('/health', (_req, res) => {
   res.json({
     success: true,
     data: {

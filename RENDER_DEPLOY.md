@@ -78,9 +78,11 @@ O Render fará o deploy automaticamente após o push para o repositório.
 ### 2. Configurar Build
 
 - **Environment**: `Node`
-- **Build Command**: `npm install && npm run build`
-- **Start Command**: `npm start`
+- **Build Command**: `yarn install` (ou `npm install`)
+- **Start Command**: `yarn start` (ou `npm start`)
 - **Root Directory**: (deixe em branco)
+
+**Nota**: O script `start` já faz o build automaticamente antes de iniciar o servidor.
 
 ### 3. Configurar Health Check
 

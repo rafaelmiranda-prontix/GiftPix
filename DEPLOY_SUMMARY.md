@@ -7,8 +7,8 @@ Arquivo de configuração do Render para deploy automatizado via Blueprint.
 
 **Configurações:**
 - Tipo: Web Service
-- Build Command: `npm ci && npm run build`
-- Start Command: `npm start`
+- Build Command: `yarn install` (instala dependências)
+- Start Command: `yarn start` (faz build e inicia servidor)
 - Health Check: `/api/health`
 - Auto Deploy: habilitado
 
@@ -61,7 +61,12 @@ cors: {
 - Production sem `ALLOWED_ORIGINS`: permite todas (não recomendado)
 - Production com `ALLOWED_ORIGINS`: valida contra a lista
 
-### 3. `README.md`
+### 3. `package.json`
+**Modificado:**
+- Script `start` agora executa `npm run build && node dist/server.js`
+- O build é feito automaticamente antes de iniciar o servidor
+
+### 4. `README.md`
 **Adicionado:**
 - Seção de deploy no Render como opção recomendada
 - Links para documentação de deploy
@@ -81,8 +86,10 @@ cors: {
 
 ### ✅ Configuração Automatizada
 - Arquivo `render.yaml` para deploy automatizado
-- Build e start commands configurados
+- Build Command: `yarn install` (instala dependências)
+- Start Command: `yarn start` (faz build automaticamente e inicia)
 - Health check configurado
+- Script `start` unificado que faz build + start
 
 ## Próximos Passos
 
