@@ -70,6 +70,6 @@ export const config: EnvConfig = {
     level: getEnvVar('LOG_LEVEL', 'info'),
   },
   cors: {
-    allowedOrigins: getEnvVar('ALLOWED_ORIGINS', '').split(',').filter(Boolean),
+    allowedOrigins: (process.env.ALLOWED_ORIGINS || '').split(',').filter(Boolean),
   },
 };
