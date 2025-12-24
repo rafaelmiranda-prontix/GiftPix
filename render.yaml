@@ -3,7 +3,7 @@ services:
     name: gift-pix-payout
     env: node
     plan: starter
-    buildCommand: yarn install && yarn build
+    buildCommand: yarn install --production=false && yarn build
     startCommand: node dist/server.js
     envVars:
       - key: NODE_ENV
