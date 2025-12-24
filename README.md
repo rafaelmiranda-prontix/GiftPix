@@ -1,14 +1,22 @@
 # Gift PIX Payout - MVP
 
-Sistema de integração de payouts PIX via requisição de QR Code com PagSeguro/PagBank.
+Sistema de integração de payouts PIX via requisição de QR Code com **Asaas** ou **PagBank**.
 
 ## Descrição
 
-Esta aplicação permite processar pagamentos PIX automaticamente através de requisições HTTP geradas por QR Codes. Ao escanear um QR Code ou acessar um link personalizado, a aplicação processa a solicitação e envia um PIX para a chave especificada usando a API do PagBank.
+Esta aplicação permite processar pagamentos PIX automaticamente através de requisições HTTP geradas por QR Codes. Ao escanear um QR Code ou acessar um link personalizado, a aplicação processa a solicitação e envia um PIX para a chave especificada.
+
+### Provedores Suportados
+
+- ✅ **Asaas** (Recomendado) - API completa de transferências PIX
+- ✅ **PagBank** (PagSeguro) - Transferências PIX
+
+Você pode alternar entre provedores configurando a variável `PAYMENT_PROVIDER` no arquivo `.env`.
 
 ## Funcionalidades
 
-- ✅ Processamento de payouts PIX via API PagBank
+- ✅ **Multi-provider**: Suporte a Asaas e PagBank
+- ✅ Processamento de payouts PIX
 - ✅ Geração de QR Codes com links parametrizados
 - ✅ Validação de chaves PIX (CPF, CNPJ, e-mail, telefone, chave aleatória)
 - ✅ Validação de valores e limites configuráveis
@@ -22,7 +30,7 @@ Esta aplicação permite processar pagamentos PIX automaticamente através de re
 
 - **Backend**: Node.js + TypeScript
 - **Framework**: Express.js
-- **API**: PagBank (PagSeguro) - Transferências PIX
+- **Provedores PIX**: Asaas, PagBank
 - **Segurança**: Helmet, CORS, Rate Limiting
 - **Logs**: Winston
 - **QR Code**: qrcode
@@ -30,8 +38,9 @@ Esta aplicação permite processar pagamentos PIX automaticamente através de re
 ## Pré-requisitos
 
 - Node.js >= 18.x
-- Conta PagBank PJ com API habilitada
-- Credenciais da API PagBank (Token)
+- Conta em um dos provedores:
+  - **Asaas** (recomendado): [asaas.com](https://www.asaas.com) - Veja [ASAAS_SETUP.md](ASAAS_SETUP.md)
+  - **PagBank**: [pagseguro.uol.com.br](https://pagseguro.uol.com.br)
 
 ## Instalação
 
@@ -58,15 +67,19 @@ cp .env.example .env
 
 Edite o arquivo `.env` com suas configurações:
 
+#### Opção A: Usando Asaas (Recomendado)
+
 ```env
 # Server Configuration
 PORT=3000
 NODE_ENV=development
 
-# PagBank API Configuration
-PAGBANK_API_URL=https://sandbox.api.pagseguro.com
-PAGBANK_API_TOKEN=seu_token_aqui
-PAGBANK_EMAIL=seu_email@pagseguro.com
+# Payment Provider
+PAYMENT_PROVIDER=asaas
+
+# Asaas API Configuration
+ASAAS_API_URL=https://sandbox.asaas.com/api
+ASAAS_API_KEY=sua_api_key_aqui
 
 # Security
 API_SECRET_KEY=sua_chave_secreta_aqui
@@ -81,6 +94,31 @@ RATE_LIMIT_MAX_REQUESTS=100
 
 # Logs
 LOG_LEVEL=info
+```
+
+**📖 Guia completo de configuração Asaas**: [ASAAS_SETUP.md](ASAAS_SETUP.md)
+
+#### Opção B: Usando PagBank
+
+```env
+# Server Configuration
+PORT=3000
+NODE_ENV=development
+
+# Payment Provider
+PAYMENT_PROVIDER=pagbank
+
+# PagBank API Configuration
+PAGBANK_API_URL=https://sandbox.api.pagseguro.com
+PAGBANK_API_TOKEN=seu_token_aqui
+PAGBANK_EMAIL=seu_email@pagseguro.com
+
+# Security
+API_SECRET_KEY=sua_chave_secreta_aqui
+
+# Transaction Limits
+MIN_PIX_VALUE=1.00
+MAX_PIX_VALUE=10000.00
 ```
 
 ### 4. Compile o TypeScript

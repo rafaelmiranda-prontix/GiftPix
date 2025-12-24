@@ -2,9 +2,10 @@ import { Request, Response, NextFunction } from 'express';
 import { v4 as uuidv4 } from 'uuid';
 import { logger } from '../utils/logger';
 import { validatePixKey, validateAmount, sanitizeDescription } from '../utils/validators';
-import { pagBankService } from '../services/pagbankService';
+import { providerFactory } from '../services/providerFactory';
 import { transactionStore } from '../utils/transactionStore';
 import { PixPayoutRequest, ApiResponse, TransactionLog } from '../types';
+import { config } from '../config/env';
 
 export class PixPayoutController {
   /**
@@ -56,49 +57,48 @@ export class PixPayoutController {
         status: 'pending',
         descricao: sanitizedDescription,
         created_at: new Date(),
+        provider: config.provider,
       };
 
       await transactionStore.save(transaction);
 
-      // Preparar dados para PagBank
+      // Preparar dados para o provider
       const transferData = {
-        reference_id: referenceId,
-        amount: {
-          value: Math.round(parseFloat(valor.toString()) * 100), // Converter para centavos
-        },
-        destination: {
-          type: 'PIX',
-          pix_key: chave_pix,
-        },
+        pix_key: chave_pix,
+        amount: parseFloat(valor.toString()),
         description: sanitizedDescription || 'Transferência PIX',
+        reference_id: referenceId,
       };
 
-      // Enviar para PagBank
-      const pagBankResponse = await pagBankService.createPixTransfer(transferData);
+      // Enviar para o provider configurado (Asaas ou PagBank)
+      const provider = providerFactory.getProvider();
+      const providerResponse = await provider.createPixTransfer(transferData);
 
       // Atualizar transação com sucesso
       await transactionStore.update(referenceId, {
         status: 'completed',
-        pagbank_transaction_id: pagBankResponse.id,
+        provider_transaction_id: providerResponse.id,
       });
 
       logger.info('Payout completed successfully', {
         reference_id: referenceId,
-        pagbank_id: pagBankResponse.id,
+        provider: config.provider,
+        provider_transaction_id: providerResponse.id,
       });
 
       res.status(201).json({
         success: true,
         data: {
           message: 'PIX enviado com sucesso',
+          provider: config.provider,
           transaction: {
             id: transaction.id,
             reference_id: referenceId,
-            pagbank_transaction_id: pagBankResponse.id,
-            status: pagBankResponse.status,
+            provider_transaction_id: providerResponse.id,
+            status: providerResponse.status,
             chave_pix,
             valor: parseFloat(valor.toString()),
-            created_at: pagBankResponse.created_at,
+            created_at: providerResponse.created_at,
           },
         },
       } as ApiResponse);
@@ -143,23 +143,25 @@ export class PixPayoutController {
         return;
       }
 
-      // Se tiver ID do PagBank, buscar status atualizado
-      if (transaction.pagbank_transaction_id) {
+      // Se tiver ID do provider, buscar status atualizado
+      if (transaction.provider_transaction_id) {
         try {
-          const pagBankStatus = await pagBankService.getTransferStatus(
-            transaction.pagbank_transaction_id
+          const provider = providerFactory.getProviderByName(transaction.provider);
+          const providerStatus = await provider.getTransferStatus(
+            transaction.provider_transaction_id
           );
 
           // Atualizar status local se necessário
-          if (pagBankStatus.status !== transaction.status) {
+          if (providerStatus.status !== transaction.status) {
             await transactionStore.update(referenceId, {
-              status: pagBankStatus.status as any,
+              status: providerStatus.status as any,
             });
-            transaction.status = pagBankStatus.status as any;
+            transaction.status = providerStatus.status as any;
           }
         } catch (error) {
-          logger.warn('Could not retrieve PagBank status', {
+          logger.warn('Could not retrieve provider status', {
             error: error instanceof Error ? error.message : 'Unknown error',
+            provider: transaction.provider,
           });
         }
       }

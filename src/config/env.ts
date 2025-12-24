@@ -5,6 +5,11 @@ dotenv.config();
 interface EnvConfig {
   port: number;
   nodeEnv: string;
+  provider: 'asaas' | 'pagbank';
+  asaas: {
+    apiUrl: string;
+    apiKey: string;
+  };
   pagbank: {
     apiUrl: string;
     apiToken: string;
@@ -37,10 +42,15 @@ const getEnvVar = (key: string, defaultValue?: string): string => {
 export const config: EnvConfig = {
   port: parseInt(getEnvVar('PORT', '3000'), 10),
   nodeEnv: getEnvVar('NODE_ENV', 'development'),
+  provider: (getEnvVar('PAYMENT_PROVIDER', 'asaas') as 'asaas' | 'pagbank'),
+  asaas: {
+    apiUrl: getEnvVar('ASAAS_API_URL', 'https://sandbox.asaas.com/api'),
+    apiKey: getEnvVar('ASAAS_API_KEY', ''),
+  },
   pagbank: {
     apiUrl: getEnvVar('PAGBANK_API_URL', 'https://sandbox.api.pagseguro.com'),
-    apiToken: getEnvVar('PAGBANK_API_TOKEN'),
-    email: getEnvVar('PAGBANK_EMAIL'),
+    apiToken: getEnvVar('PAGBANK_API_TOKEN', ''),
+    email: getEnvVar('PAGBANK_EMAIL', ''),
   },
   security: {
     apiSecretKey: getEnvVar('API_SECRET_KEY'),

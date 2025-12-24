@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { pixPayoutController } from '../controllers/pixPayoutController';
 import { qrCodeController } from '../controllers/qrcodeController';
+import { webhookController } from '../controllers/webhookController';
 import { authenticateApiKey } from '../middlewares/auth';
 
 const router = Router();
@@ -52,6 +53,19 @@ router.get(
   '/qrcode/image',
   authenticateApiKey,
   qrCodeController.generateQRCodeImage.bind(qrCodeController)
+);
+
+/**
+ * Webhooks Asaas (públicos - autenticação via IP ou token do Asaas)
+ */
+router.post(
+  '/webhooks/asaas/authorize',
+  webhookController.authorizeTransfer.bind(webhookController)
+);
+
+router.post(
+  '/webhooks/asaas/notification',
+  webhookController.handleTransferNotification.bind(webhookController)
 );
 
 export default router;

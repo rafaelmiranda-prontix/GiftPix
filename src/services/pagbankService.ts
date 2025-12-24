@@ -1,7 +1,12 @@
 import axios, { AxiosInstance, AxiosError } from 'axios';
 import { config } from '../config/env';
 import { logger } from '../utils/logger';
-import { PagBankTransferRequest, PagBankTransferResponse } from '../types';
+import {
+  PagBankTransferRequest,
+  PagBankTransferResponse,
+  PaymentProvider,
+  ProviderTransferResponse,
+} from '../types';
 
 export class PagBankError extends Error {
   constructor(
@@ -15,7 +20,7 @@ export class PagBankError extends Error {
   }
 }
 
-export class PagBankService {
+export class PagBankService implements PaymentProvider {
   private client: AxiosInstance;
 
   constructor() {
@@ -101,60 +106,105 @@ export class PagBankService {
   }
 
   /**
-   * Cria uma transferência PIX via PagBank
+   * Cria uma transferência PIX via PagBank (implementa PaymentProvider)
    * Documentação: https://developer.pagbank.com.br/reference/criar-transferencia
    */
-  async createPixTransfer(
-    transferData: PagBankTransferRequest
-  ): Promise<PagBankTransferResponse> {
+  async createPixTransfer(transferData: {
+    pix_key: string;
+    amount: number;
+    description?: string;
+    reference_id?: string;
+  }): Promise<ProviderTransferResponse> {
     try {
-      logger.info('Creating PIX transfer', {
-        reference_id: transferData.reference_id,
-        amount: transferData.amount.value,
+      logger.info('Creating PIX transfer via PagBank', {
+        pix_key: transferData.pix_key,
+        amount: transferData.amount,
       });
+
+      const requestData: PagBankTransferRequest = {
+        reference_id: transferData.reference_id || '',
+        amount: {
+          value: Math.round(transferData.amount * 100), // Converter para centavos
+        },
+        destination: {
+          type: 'PIX',
+          pix_key: transferData.pix_key,
+        },
+        description: transferData.description,
+      };
 
       const response = await this.client.post<PagBankTransferResponse>(
         '/transfers',
-        transferData
+        requestData
       );
 
-      logger.info('PIX transfer created successfully', {
+      logger.info('PIX transfer created successfully via PagBank', {
         transfer_id: response.data.id,
         status: response.data.status,
       });
 
-      return response.data;
+      return this.mapToProviderResponse(response.data);
     } catch (error) {
-      logger.error('Failed to create PIX transfer', {
+      logger.error('Failed to create PIX transfer via PagBank', {
         error: error instanceof Error ? error.message : 'Unknown error',
-        reference_id: transferData.reference_id,
+        pix_key: transferData.pix_key,
       });
       throw error;
     }
   }
 
   /**
-   * Consulta status de uma transferência
+   * Consulta status de uma transferência (implementa PaymentProvider)
    */
-  async getTransferStatus(transferId: string): Promise<PagBankTransferResponse> {
+  async getTransferStatus(transferId: string): Promise<ProviderTransferResponse> {
     try {
       const response = await this.client.get<PagBankTransferResponse>(
         `/transfers/${transferId}`
       );
 
-      logger.info('Transfer status retrieved', {
+      logger.info('Transfer status retrieved from PagBank', {
         transfer_id: transferId,
         status: response.data.status,
       });
 
-      return response.data;
+      return this.mapToProviderResponse(response.data);
     } catch (error) {
-      logger.error('Failed to get transfer status', {
+      logger.error('Failed to get transfer status from PagBank', {
         error: error instanceof Error ? error.message : 'Unknown error',
         transfer_id: transferId,
       });
       throw error;
     }
+  }
+
+  /**
+   * Mapeia resposta do PagBank para o formato padrão
+   */
+  private mapToProviderResponse(pagBankResponse: PagBankTransferResponse): ProviderTransferResponse {
+    return {
+      id: pagBankResponse.id,
+      reference_id: pagBankResponse.reference_id,
+      status: this.normalizeStatus(pagBankResponse.status),
+      amount: pagBankResponse.amount.value / 100, // Converter de centavos
+      created_at: pagBankResponse.created_at,
+      pix_key: pagBankResponse.destination.pix_key,
+      description: pagBankResponse.description,
+    };
+  }
+
+  /**
+   * Normaliza status do PagBank para formato padrão
+   */
+  private normalizeStatus(pagBankStatus: string): string {
+    const statusMap: Record<string, string> = {
+      'PENDING': 'pending',
+      'PROCESSING': 'pending',
+      'COMPLETED': 'completed',
+      'CANCELLED': 'failed',
+      'FAILED': 'failed',
+    };
+
+    return statusMap[pagBankStatus] || 'pending';
   }
 
   /**
