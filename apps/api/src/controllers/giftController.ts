@@ -155,6 +155,40 @@ class GiftController {
     }
   }
 
+  async history(_req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const history = await giftService.listHistory();
+      res.status(200).json({
+        success: true,
+        data: {
+          items: history.map((item) => ({
+            gift_id: item.gift.id,
+            reference_id: item.gift.reference_id,
+            amount: item.gift.amount,
+            gift_status: item.gift.status,
+            payment_status: item.paymentStatus,
+            created_at: item.gift.created_at,
+            provider_ref: item.providerRef,
+          })),
+        },
+      } as ApiResponse);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async historySummary(_req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const summary = await giftService.getHistorySummary();
+      res.status(200).json({
+        success: true,
+        data: summary,
+      } as ApiResponse);
+    } catch (error) {
+      next(error);
+    }
+  }
+
   async qrCode(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const { referenceId } = req.params;

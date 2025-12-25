@@ -275,6 +275,50 @@ class GiftService {
     return giftRepository.list();
   }
 
+  async listHistory(): Promise<
+    Array<{
+      gift: Gift;
+      paymentStatus?: ProviderStatus;
+      providerRef?: string;
+    }>
+  > {
+    const gifts = await giftRepository.list();
+    const items = await Promise.all(
+      gifts.map(async (gift) => {
+        const payment = await paymentRepository.findByGiftId(gift.id);
+        return {
+          gift,
+          paymentStatus: payment?.status as ProviderStatus | undefined,
+          providerRef: payment?.provider_ref,
+        };
+      })
+    );
+    return items;
+  }
+
+  async getHistorySummary(): Promise<{
+    totalGifts: number;
+    totalSent: number;
+    totalRefunded: number;
+    redeemed: number;
+    active: number;
+    expired: number;
+  }> {
+    const history = await this.listHistory();
+    return history.reduce(
+      (acc, item) => {
+        acc.totalGifts += 1;
+        acc.totalSent += item.gift.amount;
+        if (item.gift.status === 'redeemed') acc.redeemed += 1;
+        if (item.gift.status === 'active') acc.active += 1;
+        if (item.gift.status === 'expired') acc.expired += 1;
+        if (item.paymentStatus === 'refunded') acc.totalRefunded += item.gift.amount;
+        return acc;
+      },
+      { totalGifts: 0, totalSent: 0, totalRefunded: 0, redeemed: 0, active: 0, expired: 0 }
+    );
+  }
+
   async getSummary(): Promise<{
     total: number;
     redeemed: number;

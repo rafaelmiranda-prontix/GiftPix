@@ -128,6 +128,8 @@ router.get(
 router.post('/gifts', authenticateApiKey, giftController.create.bind(giftController));
 router.get('/gifts', authenticateApiKey, giftController.list.bind(giftController));
 router.get('/gifts/summary', authenticateApiKey, giftController.summary.bind(giftController));
+router.get('/history', authenticateApiKey, giftController.history.bind(giftController));
+router.get('/history/summary', authenticateApiKey, giftController.historySummary.bind(giftController));
 router.post(
   '/gifts/:referenceId/redeem',
   authenticateApiKey,

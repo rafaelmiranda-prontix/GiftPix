@@ -123,6 +123,9 @@ export default function DashboardPage() {
             <Link href="/profile">
               <Button intent="secondary">Perfil</Button>
             </Link>
+            <Link href="/history">
+              <Button intent="secondary">Histórico</Button>
+            </Link>
             <Link href="/create">
               <Button intent="primary">Criar novo GiftPix</Button>
             </Link>
