@@ -1,5 +1,8 @@
 import dotenv from 'dotenv';
+import path from 'path';
 
+const rootEnvPath = path.resolve(process.cwd(), '..', '..', '.env');
+dotenv.config({ path: rootEnvPath });
 dotenv.config();
 
 interface EnvConfig {

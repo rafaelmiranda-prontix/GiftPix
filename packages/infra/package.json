@@ -1,0 +1,16 @@
+{
+  "name": "@giftpix/infra",
+  "version": "0.1.0",
+  "private": true,
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "lint": "echo \"no lint configured for infra yet\"",
+    "test": "echo \"no tests for infra yet\""
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "typescript": "^5.3.3"
+  }
+}
