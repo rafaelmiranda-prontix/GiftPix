@@ -8,6 +8,8 @@ const statusToDb = (status: GiftStatus): DbGiftStatus => {
       return 'REDEEMED';
     case 'expired':
       return 'EXPIRED';
+    case 'refunded':
+      return 'REFUNDED';
     case 'active':
     default:
       return 'ACTIVE';
@@ -20,6 +22,8 @@ const statusFromDb = (status: DbGiftStatus): GiftStatus => {
       return 'redeemed';
     case 'EXPIRED':
       return 'expired';
+    case 'REFUNDED':
+      return 'refunded';
     case 'ACTIVE':
     default:
       return 'active';

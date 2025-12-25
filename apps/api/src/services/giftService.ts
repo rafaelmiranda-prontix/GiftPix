@@ -208,18 +208,29 @@ class GiftService {
     let latestStatus = payment.status as ProviderStatus;
     let providerRef = payment.provider_ref;
 
-    // Se houver provider_ref e status pendente, consultar provider
-    if (payment.provider_ref && payment.status === 'pending') {
+    // Se houver provider_ref, consultar provider para garantir status atualizado
+    if (payment.provider_ref) {
       const provider = providerFactory.getProviderByName(payment.provider);
       try {
         const providerStatus = await provider.getTransferStatus(payment.provider_ref);
+        logger.info('PSP status refresh', {
+          reference_id,
+          provider_ref: payment.provider_ref,
+          provider_status: providerStatus.status,
+        });
         latestStatus = providerStatus.status as ProviderStatus;
         providerRef = providerStatus.id;
 
-        await paymentRepository.updateStatus(payment.id, latestStatus, { provider_ref: providerStatus.id });
+        await paymentRepository.updateStatus(payment.id, latestStatus, {
+          provider_ref: providerStatus.id,
+          last_checked_at: new Date(),
+        });
 
         if (latestStatus === 'completed') {
           await giftRepository.updateStatus(gift.id, 'redeemed');
+        }
+        if (latestStatus === 'refunded') {
+          await giftRepository.updateStatus(gift.id, 'refunded');
         }
 
         await transactionRepository.update(reference_id, {
@@ -234,7 +245,11 @@ class GiftService {
       }
     }
 
-    return { gift: { ...gift, status: latestStatus === 'completed' ? 'redeemed' : gift.status }, paymentStatus: latestStatus, providerRef };
+    let giftStatus = gift.status;
+    if (latestStatus === 'completed') giftStatus = 'redeemed';
+    if (latestStatus === 'refunded') giftStatus = 'refunded';
+
+    return { gift: { ...gift, status: giftStatus }, paymentStatus: latestStatus, providerRef };
   }
 
   async validatePin(reference_id: string, pin: string): Promise<Gift> {

@@ -14,6 +14,7 @@ export async function GET(_req: Request, { params }: { params: { referenceId: st
       headers: {
         'x-api-key': apiKey,
       },
+      cache: 'no-store',
     });
     const data = await resp.json();
     console.info('[api/gifts/:referenceId] response', { status: resp.status });

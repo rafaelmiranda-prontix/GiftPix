@@ -219,10 +219,11 @@ export class AsaasService implements PaymentProvider {
   private normalizeStatus(asaasStatus: string): ProviderStatus {
     const statusMap: Record<string, ProviderStatus> = {
       'PENDING': 'pending',
-      'BANK_PROCESSING': 'pending',
+      'BANK_PROCESSING': 'processing',
       'DONE': 'completed',
       'CANCELLED': 'failed',
       'FAILED': 'failed',
+      'REFUNDED': 'refunded',
     };
 
     return statusMap[asaasStatus] || 'pending';

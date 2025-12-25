@@ -6,7 +6,7 @@ import { Button, Card } from '@giftpix/ui';
 import Link from 'next/link';
 
 type GiftStatus = 'active' | 'redeemed' | 'expired';
-type ProviderStatus = 'pending' | 'completed' | 'failed' | undefined;
+type ProviderStatus = 'pending' | 'processing' | 'completed' | 'failed' | 'refunded' | undefined;
 
 type GiftDetail = {
   reference_id: string;
@@ -226,14 +226,23 @@ export default function RedeemPage({ searchParams }: { searchParams: { ref?: str
                         ? 'bg-emerald-100 text-emerald-800'
                         : giftData.status === 'redeemed'
                           ? 'bg-slate-200 text-slate-700'
-                          : 'bg-amber-100 text-amber-800'
+                          : giftData.status === 'refunded'
+                            ? 'bg-slate-200 text-slate-700'
+                            : 'bg-amber-100 text-amber-800'
                     }`}
                   >
                     {statusLabel[giftData.status]}
                   </span>
                   {paymentStatus && (
                     <span className="rounded-full bg-white/80 px-3 py-1 text-xs font-semibold text-slate-700">
-                      Pix: {paymentStatus === 'completed' ? 'Confirmado' : paymentStatus === 'pending' ? 'Pendente' : 'Falhou'}
+                      Pix:{' '}
+                      {paymentStatus === 'completed'
+                        ? 'Concluído'
+                        : paymentStatus === 'processing' || paymentStatus === 'pending'
+                          ? 'Processando'
+                          : paymentStatus === 'refunded'
+                            ? 'Estornado'
+                            : 'Falhou'}
                     </span>
                   )}
                 </div>
@@ -314,12 +323,12 @@ export default function RedeemPage({ searchParams }: { searchParams: { ref?: str
             </Card>
           )}
 
-          {step === 4 && (
-            <Card className="bg-white/90 p-6">
-              <div className="flex flex-col gap-4">
-                <div>
-                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-cyan-700">Passo 4</p>
-                  <h2 className="text-xl font-semibold text-slate-900">Confirme o resgate</h2>
+            {step === 4 && (
+              <Card className="bg-white/90 p-6">
+                <div className="flex flex-col gap-4">
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-[0.2em] text-cyan-700">Passo 4</p>
+                    <h2 className="text-xl font-semibold text-slate-900">Confirme o resgate</h2>
                   <p className="text-sm text-slate-700">Verifique os dados antes de enviar. Operação irreversível.</p>
                 </div>
                 <div className="grid gap-3 sm:grid-cols-2">
@@ -345,23 +354,41 @@ export default function RedeemPage({ searchParams }: { searchParams: { ref?: str
                   <Button intent="primary" onClick={handleRedeem} disabled={!canAdvanceToConfirm || isRedeeming}>
                     {isRedeeming ? 'Enviando Pix...' : 'Confirmar resgate'}
                   </Button>
+                  </div>
                 </div>
-              </div>
-            </Card>
-          )}
+              </Card>
+            )}
 
           {step === 5 && redeemResult && (
             <Card className="bg-white/90 p-6">
               <div className="flex flex-col gap-3">
                 <p className="text-xs font-semibold uppercase tracking-[0.2em] text-cyan-700">Resgate concluído</p>
-                <h2 className="text-2xl font-bold text-slate-900">Pix enviado com sucesso 🎉</h2>
+                <h2 className="text-2xl font-bold text-slate-900">
+                  {redeemResult.transfer.status === 'completed'
+                    ? 'Pix enviado com sucesso 🎉'
+                    : redeemResult.transfer.status === 'processing' || redeemResult.transfer.status === 'pending'
+                      ? 'Pix em processamento'
+                      : redeemResult.transfer.status === 'refunded'
+                        ? 'Pix estornado'
+                        : 'Falha no Pix'}
+                </h2>
                 <p className="text-sm text-slate-700">
-                  Valor: {giftData.amount.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })} · Status:{' '}
+                  Valor: {giftData.amount.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })} · Status Pix:{' '}
                   {redeemResult.transfer.status}
                 </p>
                 {redeemResult.transfer.id && (
                   <p className="text-sm text-slate-600">ID da transferência: {redeemResult.transfer.id}</p>
                 )}
+                {redeemResult.transfer.status === 'pending' || redeemResult.transfer.status === 'processing' ? (
+                  <p className="text-sm text-slate-600">
+                    O Pix foi solicitado e está sendo processado. Pode levar alguns instantes para aparecer.
+                  </p>
+                ) : null}
+                {redeemResult.transfer.status === 'failed' ? (
+                  <p className="text-sm text-rose-600">
+                    Houve um problema no envio do Pix. Nossa equipe está processando a correção.
+                  </p>
+                ) : null}
                 <div className="flex flex-wrap gap-2">
                   <Link href="/">
                     <Button intent="secondary">Voltar para a home</Button>

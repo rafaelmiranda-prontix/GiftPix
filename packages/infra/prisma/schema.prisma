@@ -22,6 +22,7 @@ model Gift {
   updatedAt    DateTime  @updatedAt @map("updated_at")
   redemptions  GiftRedemption[]
   payments     Payment[]
+  pixTransfers PixTransaction[]
 
   @@index([status])
   @@index([expiresAt])
@@ -51,6 +52,7 @@ model Payment {
   providerRef     String?     @map("provider_ref")
   amount          Decimal     @db.Decimal(10, 2)
   status          PaymentStatus @default(PENDING)
+  lastCheckedAt   DateTime?    @map("last_checked_at")
   errorMessage    String?     @map("error_message")
   createdAt       DateTime    @default(now()) @map("created_at")
   updatedAt       DateTime    @updatedAt @map("updated_at")
@@ -90,6 +92,22 @@ model TransactionLog {
   @@map("transaction_log")
 }
 
+model PixTransaction {
+  id               String      @id @default(uuid())
+  giftId           String      @map("gift_id")
+  pspTransactionId String      @unique @map("psp_transaction_id")
+  status           PixStatus   @default(PENDING)
+  lastCheckedAt    DateTime?   @map("last_checked_at")
+  createdAt        DateTime    @default(now()) @map("created_at")
+  updatedAt        DateTime    @updatedAt @map("updated_at")
+
+  gift             Gift        @relation(fields: [giftId], references: [id])
+
+  @@index([giftId])
+  @@index([status])
+  @@map("pix_transaction")
+}
+
 model Notification {
   id            String          @id @default(uuid())
   giftId        String?         @map("gift_id")
@@ -127,6 +145,7 @@ enum GiftStatus {
   ACTIVE
   REDEEMED
   EXPIRED
+  REFUNDED
 }
 
 enum RedemptionStatus {
@@ -139,6 +158,8 @@ enum PaymentStatus {
   PENDING
   COMPLETED
   FAILED
+  PROCESSING
+  REFUNDED
 }
 
 enum Provider {
@@ -150,4 +171,21 @@ enum TransactionStatus {
   PENDING
   COMPLETED
   FAILED
+}
+
+enum PixStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+  REFUNDED
+}
+
+model SystemConfig {
+  key        String   @id
+  value      String
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  @@map("system_config")
 }

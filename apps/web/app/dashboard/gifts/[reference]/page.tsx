@@ -7,7 +7,7 @@ import { Button, Card } from '@giftpix/ui';
 import { supabase } from '../../../../lib/supabaseClient';
 
 type GiftStatus = 'active' | 'redeemed' | 'expired';
-type ProviderStatus = 'pending' | 'completed' | 'failed' | undefined;
+type ProviderStatus = 'pending' | 'processing' | 'completed' | 'failed' | 'refunded' | undefined;
 
 type GiftDetail = {
   reference_id: string;
@@ -52,8 +52,10 @@ const statusBadge: Record<GiftStatus, string> = {
 
 const paymentBadge: Record<NonNullable<ProviderStatus>, string> = {
   pending: 'bg-amber-100 text-amber-800',
+  processing: 'bg-amber-100 text-amber-800',
   completed: 'bg-emerald-100 text-emerald-800',
   failed: 'bg-rose-100 text-rose-800',
+  refunded: 'bg-slate-200 text-slate-700',
 };
 
 export default function GiftDetailPage({ params }: { params: { reference: string } }) {
@@ -184,11 +186,18 @@ export default function GiftDetailPage({ params }: { params: { reference: string
                 <span className={`rounded-full px-3 py-1 text-xs font-semibold ${statusBadge[giftData.status]}`}>
                   {statusLabel[giftData.status]}
                 </span>
-                {paymentStatus && (
-                  <span className={`rounded-full px-3 py-1 text-xs font-semibold ${paymentBadge[paymentStatus]}`}>
-                    Pagamento: {paymentStatus === 'completed' ? 'Confirmado' : paymentStatus === 'pending' ? 'Pendente' : 'Falhou'}
-                  </span>
-                )}
+                  {paymentStatus && (
+                    <span className={`rounded-full px-3 py-1 text-xs font-semibold ${paymentBadge[paymentStatus]}`}>
+                      Pix:{' '}
+                      {paymentStatus === 'completed'
+                        ? 'Concluído'
+                        : paymentStatus === 'processing' || paymentStatus === 'pending'
+                          ? 'Processando'
+                          : paymentStatus === 'refunded'
+                            ? 'Estornado'
+                            : 'Falhou'}
+                    </span>
+                  )}
               </div>
             </div>
             {giftData.status === 'redeemed' && (

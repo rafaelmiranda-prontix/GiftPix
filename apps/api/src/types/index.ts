@@ -109,7 +109,7 @@ export interface GiftRedemption {
   updated_at: Date;
 }
 
-export type PaymentStatus = 'pending' | 'completed' | 'failed';
+export type PaymentStatus = 'pending' | 'processing' | 'completed' | 'failed' | 'refunded';
 export interface Payment {
   id: string;
   gift_id: string;
@@ -120,9 +120,10 @@ export interface Payment {
   error_message?: string;
   created_at: Date;
   updated_at: Date;
+  last_checked_at?: Date;
 }
 
-export type ProviderStatus = 'pending' | 'completed' | 'failed';
+export type ProviderStatus = 'pending' | 'processing' | 'completed' | 'failed' | 'refunded';
 
 export interface PixTransferData {
   pix_key: string;

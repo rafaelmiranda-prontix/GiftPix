@@ -7,10 +7,14 @@ const providerFromDb = (provider: DbProvider): ProviderName => (provider === 'AS
 
 const statusToDb = (status: PaymentStatus): DbPaymentStatus => {
   switch (status) {
+    case 'processing':
+      return 'PROCESSING';
     case 'completed':
       return 'COMPLETED';
     case 'failed':
       return 'FAILED';
+    case 'refunded':
+      return 'REFUNDED';
     default:
       return 'PENDING';
   }
@@ -18,10 +22,14 @@ const statusToDb = (status: PaymentStatus): DbPaymentStatus => {
 
 const statusFromDb = (status: DbPaymentStatus): PaymentStatus => {
   switch (status) {
+    case 'PROCESSING':
+      return 'processing';
     case 'COMPLETED':
       return 'completed';
     case 'FAILED':
       return 'failed';
+    case 'REFUNDED':
+      return 'refunded';
     default:
       return 'pending';
   }
@@ -37,6 +45,7 @@ const mapToDomain = (payment: Payment): DomainPayment => ({
   error_message: payment.errorMessage ?? undefined,
   created_at: payment.createdAt,
   updated_at: payment.updatedAt,
+  last_checked_at: payment.lastCheckedAt ?? undefined,
 });
 
 export const paymentRepository = {
@@ -79,7 +88,7 @@ export const paymentRepository = {
   async updateStatus(
     id: string,
     status: PaymentStatus,
-    opts?: { provider_ref?: string; error_message?: string }
+    opts?: { provider_ref?: string; error_message?: string; last_checked_at?: Date }
   ): Promise<DomainPayment> {
     const updated = await prisma.payment.update({
       where: { id },
@@ -87,6 +96,7 @@ export const paymentRepository = {
         status: statusToDb(status),
         providerRef: opts?.provider_ref,
         errorMessage: opts?.error_message,
+        lastCheckedAt: opts?.last_checked_at,
       },
     });
     return mapToDomain(updated);
