@@ -161,7 +161,7 @@ export default function Home() {
             <span className="rounded-full bg-white/10 px-3 py-1">Prisma + Supabase</span>
           </div>
           <div className="flex flex-wrap gap-3">
-            <Link href="#login">
+            <Link href="/create">
               <Button intent="primary" size="lg">
                 Criar meu GiftPix
               </Button>

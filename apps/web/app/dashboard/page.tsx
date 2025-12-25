@@ -120,7 +120,7 @@ export default function DashboardPage() {
             <Link href="/">
               <Button intent="secondary">Voltar para a landing</Button>
             </Link>
-            <Link href="/?flow=create">
+            <Link href="/create">
               <Button intent="primary">Criar novo GiftPix</Button>
             </Link>
           </div>

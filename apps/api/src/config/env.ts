@@ -19,6 +19,7 @@ interface EnvConfig {
   port: number;
   nodeEnv: string;
   provider: 'asaas' | 'pagbank';
+  requirePaymentConfirmation: boolean;
   asaas: {
     apiUrl: string;
     apiKey: string;
@@ -59,6 +60,7 @@ export const config: EnvConfig = {
   port: parseInt(getEnvVar('PORT', '3000'), 10),
   nodeEnv: getEnvVar('NODE_ENV', 'development'),
   provider: (getEnvVar('PAYMENT_PROVIDER', 'asaas') as 'asaas' | 'pagbank'),
+  requirePaymentConfirmation: getEnvVar('REQUIRE_PAYMENT_CONFIRMATION', 'false') === 'true',
   asaas: {
     apiUrl: getEnvVar('ASAAS_API_URL', 'https://sandbox.asaas.com/api'),
     apiKey: getEnvVar('ASAAS_API_KEY', ''),

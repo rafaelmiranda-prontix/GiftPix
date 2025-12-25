@@ -100,6 +100,35 @@ class GiftService {
       throw new ValidationError('PIN inválido');
     }
 
+    const payment = await paymentRepository.findByGiftId(gift.id);
+    if (!payment) {
+      throw new Error('Pagamento não encontrado para o gift');
+    }
+
+    if (config.requirePaymentConfirmation && payment.status !== 'completed') {
+      // Tenta atualizar status se houver referência no provider
+      if (payment.provider_ref) {
+        const providerStatus = await providerFactory
+          .getProviderByName(payment.provider)
+          .getTransferStatus(payment.provider_ref)
+          .catch(() => null);
+
+        if (providerStatus) {
+          await paymentRepository.updateStatus(payment.id, providerStatus.status, {
+            provider_ref: providerStatus.id,
+          });
+          if (providerStatus.status === 'completed') {
+            await giftRepository.updateStatus(gift.id, 'redeemed');
+          }
+        }
+      }
+
+      const refreshedPayment = await paymentRepository.findByGiftId(gift.id);
+      if (refreshedPayment && refreshedPayment.status !== 'completed') {
+        throw new ValidationError('Pagamento pendente. Aguarde a confirmação para resgatar.');
+      }
+    }
+
     // Registrar redemption
     const redemption = await giftRedemptionRepository.create({
       gift_id: gift.id,
@@ -107,11 +136,6 @@ class GiftService {
       provider: config.provider,
       status: 'pending',
     });
-
-    const payment = await paymentRepository.findByGiftId(gift.id);
-    if (!payment) {
-      throw new Error('Pagamento não encontrado para o gift');
-    }
 
     const provider = providerFactory.getProvider();
     let transfer: ProviderTransferResponse;
