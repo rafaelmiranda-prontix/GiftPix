@@ -81,6 +81,47 @@ export interface QRCodeGenerationRequest {
   descricao?: string;
 }
 
+export type ProviderName = 'asaas' | 'pagbank';
+
+export type GiftStatus = 'active' | 'redeemed' | 'expired';
+export interface Gift {
+  id: string;
+  reference_id: string;
+  amount: number;
+  status: GiftStatus;
+  message?: string;
+  pin_hash?: string;
+  expires_at?: Date;
+  created_at: Date;
+  updated_at: Date;
+}
+
+export type RedemptionStatus = 'pending' | 'completed' | 'failed';
+export interface GiftRedemption {
+  id: string;
+  gift_id: string;
+  pix_key: string;
+  status: RedemptionStatus;
+  provider: ProviderName;
+  provider_ref?: string;
+  error_message?: string;
+  created_at: Date;
+  updated_at: Date;
+}
+
+export type PaymentStatus = 'pending' | 'completed' | 'failed';
+export interface Payment {
+  id: string;
+  gift_id: string;
+  provider: ProviderName;
+  provider_ref?: string;
+  amount: number;
+  status: PaymentStatus;
+  error_message?: string;
+  created_at: Date;
+  updated_at: Date;
+}
+
 export type ProviderStatus = 'pending' | 'completed' | 'failed';
 
 export interface PixTransferData {

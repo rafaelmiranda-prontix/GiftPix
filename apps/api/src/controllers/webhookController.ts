@@ -162,23 +162,6 @@ export class WebhookController {
     return statusMap[asaasStatus] || 'pending';
   }
 
-  /**
-   * Exemplo: Calcular total de transferências do dia
-   * Implemente conforme sua necessidade
-   * 
-   * @deprecated Método não utilizado atualmente
-   */
-  // private async getDailyTotal(): Promise<number> {
-  //   const transactions = await transactionStore.getAll();
-  //   const today = new Date();
-  //   today.setHours(0, 0, 0, 0);
-
-  //   const dailyTransactions = transactions.filter(
-  //     t => t.created_at >= today && t.status === 'completed'
-  //   );
-
-  //   return dailyTransactions.reduce((sum, t) => sum + t.valor, 0);
-  // }
 }
 
 export const webhookController = new WebhookController();

@@ -12,75 +12,82 @@ datasource db {
 
 model Gift {
   id           String    @id @default(uuid())
-  referenceId  String    @unique
+  referenceId  String    @unique @map("reference_id")
   amount       Decimal   @db.Decimal(10, 2)
   status       GiftStatus @default(ACTIVE)
   message      String?
-  pinHash      String
-  expiresAt    DateTime?
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
+  pinHash      String    @map("pin_hash")
+  expiresAt    DateTime? @map("expires_at")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
   redemptions  GiftRedemption[]
   payments     Payment[]
 
   @@index([status])
   @@index([expiresAt])
+  @@map("gift")
 }
 
 model GiftRedemption {
   id              String      @id @default(uuid())
-  giftId          String
-  pixKey          String
+  giftId          String      @map("gift_id")
+  pixKey          String      @map("pix_key")
   status          RedemptionStatus @default(PENDING)
   provider        Provider
-  providerRef     String?
-  errorMessage    String?
-  createdAt       DateTime    @default(now())
-  updatedAt       DateTime    @updatedAt
+  providerRef     String?     @map("provider_ref")
+  errorMessage    String?     @map("error_message")
+  createdAt       DateTime    @default(now()) @map("created_at")
+  updatedAt       DateTime    @updatedAt @map("updated_at")
 
   gift            Gift        @relation(fields: [giftId], references: [id])
+
+  @@map("gift_redemption")
 }
 
 model Payment {
   id              String      @id @default(uuid())
-  giftId          String
+  giftId          String      @map("gift_id")
   provider        Provider
-  providerRef     String?
+  providerRef     String?     @map("provider_ref")
   amount          Decimal     @db.Decimal(10, 2)
   status          PaymentStatus @default(PENDING)
-  errorMessage    String?
-  createdAt       DateTime    @default(now())
-  updatedAt       DateTime    @updatedAt
+  errorMessage    String?     @map("error_message")
+  createdAt       DateTime    @default(now()) @map("created_at")
+  updatedAt       DateTime    @updatedAt @map("updated_at")
 
   gift            Gift        @relation(fields: [giftId], references: [id])
+
+  @@map("payment")
 }
 
 model AuditLog {
   id        String   @id @default(uuid())
   entity    String
-  entityId  String
+  entityId  String   @map("entity_id")
   action    String
   payload   Json
-  createdAt DateTime @default(now())
+  createdAt DateTime @default(now()) @map("created_at")
 
   @@index([entity, createdAt])
+  @@map("audit_log")
 }
 
 model TransactionLog {
   id                     String         @id @default(uuid())
-  referenceId            String         @unique
-  pixKey                 String
+  referenceId            String         @unique @map("reference_id")
+  pixKey                 String         @map("pix_key")
   amount                 Decimal        @db.Decimal(10, 2)
   status                 TransactionStatus @default(PENDING)
   description            String?
   provider               Provider
-  providerTransactionId  String?
-  errorMessage           String?
-  createdAt              DateTime       @default(now())
-  updatedAt              DateTime       @updatedAt
+  providerTransactionId  String?        @map("provider_transaction_id")
+  errorMessage           String?        @map("error_message")
+  createdAt              DateTime       @default(now()) @map("created_at")
+  updatedAt              DateTime       @updatedAt @map("updated_at")
 
   @@index([providerTransactionId])
   @@index([status])
+  @@map("transaction_log")
 }
 
 enum GiftStatus {
