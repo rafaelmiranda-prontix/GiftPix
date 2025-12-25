@@ -121,6 +121,15 @@ export default function Home() {
       const data = await resp.json();
       if (!resp.ok) throw new Error(data?.error?.message || 'Erro ao criar conta');
       pushToast('Conta criada. Verifique seu e-mail.', 'success');
+      const session = data?.data?.session;
+      if (session) {
+        await supabase.auth.setSession({
+          access_token: session.access_token,
+          refresh_token: session.refresh_token,
+        });
+        setSessionEmail(data?.data?.user?.email || email);
+      }
+      router.push('/dashboard');
     } catch (error) {
       setAuthError(error instanceof Error ? error.message : 'Erro desconhecido');
     }
