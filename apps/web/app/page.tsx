@@ -54,6 +54,7 @@ export default function Home() {
   const [sessionEmail, setSessionEmail] = useState<string | null>(null);
   const [authError, setAuthError] = useState<string | null>(null);
   const [isLoadingAuth, setIsLoadingAuth] = useState(false);
+  const [name, setName] = useState('');
 
   const [createPayload, setCreatePayload] = useState({
     amount: '100',
@@ -131,18 +132,54 @@ export default function Home() {
   }, [searchParams, fetchStatus]);
 
   const handleSignIn = async (email: string, password: string) => {
+    if (!email || !password || password.length < 8) {
+      setAuthError('Informe e-mail e senha (mínimo 8 caracteres)');
+      return;
+    }
     setIsLoadingAuth(true);
     setAuthError(null);
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) setAuthError(error.message);
+    try {
+      const resp = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      });
+      const data = await resp.json();
+      if (!resp.ok) throw new Error(data?.error?.message || 'Erro ao entrar');
+      const session = data?.data?.session;
+      if (session) {
+        await supabase.auth.setSession({
+          access_token: session.access_token,
+          refresh_token: session.refresh_token,
+        });
+      }
+      setSessionEmail(data?.data?.user?.email || email);
+      pushToast('Login realizado', 'success');
+    } catch (error) {
+      setAuthError(error instanceof Error ? error.message : 'Erro desconhecido');
+    }
     setIsLoadingAuth(false);
   };
 
-  const handleSignUp = async (email: string, password: string) => {
+  const handleSignUp = async (email: string, password: string, fullName?: string) => {
+    if (!email || !password || password.length < 8) {
+      setAuthError('Informe e-mail e senha (mínimo 8 caracteres)');
+      return;
+    }
     setIsLoadingAuth(true);
     setAuthError(null);
-    const { error } = await supabase.auth.signUp({ email, password });
-    if (error) setAuthError(error.message);
+    try {
+      const resp = await fetch('/api/auth/signup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password, name: fullName }),
+      });
+      const data = await resp.json();
+      if (!resp.ok) throw new Error(data?.error?.message || 'Erro ao criar conta');
+      pushToast('Conta criada. Verifique seu e-mail.', 'success');
+    } catch (error) {
+      setAuthError(error instanceof Error ? error.message : 'Erro desconhecido');
+    }
     setIsLoadingAuth(false);
   };
 
@@ -284,6 +321,28 @@ export default function Home() {
           sessionEmail={sessionEmail}
           isLoading={isLoadingAuth}
           error={authError}
+          onForgotPassword={async (email) => {
+            if (!email) {
+              setAuthError('Informe o e-mail para recuperar.');
+              return;
+            }
+            setIsLoadingAuth(true);
+            setAuthError(null);
+            const resp = await fetch('/api/auth/forgot-password', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ email }),
+            });
+            const data = await resp.json();
+            if (!resp.ok) {
+              setAuthError(data?.error?.message || 'Erro ao enviar e-mail de recuperação');
+            } else {
+              pushToast('E-mail de recuperação enviado.', 'info');
+            }
+            setIsLoadingAuth(false);
+          }}
+          name={name}
+          onNameChange={setName}
         />
       </header>
 
@@ -462,13 +521,19 @@ function AuthPanel({
   onSignOut,
   isLoading,
   error,
+  onForgotPassword,
+  name,
+  onNameChange,
 }: {
   sessionEmail: string | null;
   onSignIn: (email: string, password: string) => void;
-  onSignUp: (email: string, password: string) => void;
+  onSignUp: (email: string, password: string, name?: string) => void;
   onSignOut: () => void;
   isLoading: boolean;
   error: string | null;
+  onForgotPassword: (email: string) => void;
+  name: string;
+  onNameChange: (name: string) => void;
 }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -488,6 +553,14 @@ function AuthPanel({
   return (
     <Card className="bg-white/10 text-white">
       <div className="flex flex-col gap-2">
+        {isRegister && (
+          <input
+            className="h-10 rounded-md border border-white/30 bg-white/10 px-3 text-sm text-white placeholder:text-white/60 focus:border-white/60 focus:outline-none"
+            placeholder="nome completo"
+            value={name}
+            onChange={(e) => onNameChange(e.target.value)}
+          />
+        )}
         <input
           className="h-10 rounded-md border border-white/30 bg-white/10 px-3 text-sm text-white placeholder:text-white/60 focus:border-white/60 focus:outline-none"
           placeholder="email"
@@ -505,7 +578,7 @@ function AuthPanel({
           <Button
             intent="primary"
             size="sm"
-            onClick={() => (isRegister ? onSignUp(email, password) : onSignIn(email, password))}
+            onClick={() => (isRegister ? onSignUp(email, password, name) : onSignIn(email, password))}
             disabled={isLoading}
           >
             {isLoading ? 'Processando...' : isRegister ? 'Criar conta' : 'Entrar'}
@@ -514,6 +587,16 @@ function AuthPanel({
             {isRegister ? 'Já tenho conta' : 'Quero registrar'}
           </Button>
         </div>
+        {!isRegister && (
+          <button
+            type="button"
+            className="text-left text-xs text-white/80 underline"
+            onClick={() => onForgotPassword(email)}
+            disabled={isLoading}
+          >
+            Esqueci minha senha
+          </button>
+        )}
         {error && <p className="text-xs text-rose-200">{error}</p>}
       </div>
     </Card>
