@@ -1,9 +1,19 @@
+import fs from 'fs';
 import dotenv from 'dotenv';
 import path from 'path';
 
-const rootEnvPath = path.resolve(process.cwd(), '..', '..', '.env');
-dotenv.config({ path: rootEnvPath });
-dotenv.config();
+// Resolve .env na raiz do monorepo, workspace da API e cwd; carrega apenas os existentes
+const candidateEnvPaths = [
+  path.resolve(__dirname, '../../../../.env'), // repo/.env
+  path.resolve(__dirname, '../../../.env'), // apps/api/.env (se existir)
+  path.resolve(process.cwd(), '.env'), // cwd/.env (ex: se rodar de outro diretório)
+];
+
+candidateEnvPaths.forEach((envPath) => {
+  if (fs.existsSync(envPath)) {
+    dotenv.config({ path: envPath, override: true });
+  }
+});
 
 interface EnvConfig {
   port: number;

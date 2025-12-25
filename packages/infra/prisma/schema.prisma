@@ -2,12 +2,12 @@
 
 generator client {
   provider = "prisma-client-js"
-  output   = "../node_modules/.prisma/client"
 }
 
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 model Gift {
@@ -66,6 +66,23 @@ model AuditLog {
   @@index([entity, createdAt])
 }
 
+model TransactionLog {
+  id                     String         @id @default(uuid())
+  referenceId            String         @unique
+  pixKey                 String
+  amount                 Decimal        @db.Decimal(10, 2)
+  status                 TransactionStatus @default(PENDING)
+  description            String?
+  provider               Provider
+  providerTransactionId  String?
+  errorMessage           String?
+  createdAt              DateTime       @default(now())
+  updatedAt              DateTime       @updatedAt
+
+  @@index([providerTransactionId])
+  @@index([status])
+}
+
 enum GiftStatus {
   ACTIVE
   REDEEMED
@@ -87,4 +104,10 @@ enum PaymentStatus {
 enum Provider {
   ASAAS
   PAGBANK
+}
+
+enum TransactionStatus {
+  PENDING
+  COMPLETED
+  FAILED
 }

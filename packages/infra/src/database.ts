@@ -3,6 +3,7 @@ export type DatabaseProvider = 'supabase' | 'postgres';
 export interface DatabaseConfig {
   provider: DatabaseProvider;
   url: string;
+  directUrl?: string;
   ssl?: boolean;
 }
 
@@ -31,7 +32,7 @@ export const getDatabaseConfig = (env: NodeJS.ProcessEnv = process.env): Databas
     if (!url) {
       throw new Error('SUPABASE_DATABASE_URL (or DATABASE_URL) is required when DB_PROVIDER=supabase');
     }
-    return { provider, url, ssl: true };
+    return { provider, url, directUrl: env.SUPABASE_DIRECT_URL || env.DIRECT_URL, ssl: true };
   }
 
   const url = buildPostgresUrl(env);

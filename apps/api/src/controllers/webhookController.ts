@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { logger } from '../utils/logger';
-import { transactionStore } from '../utils/transactionStore';
+import { transactionRepository } from '../repositories/transactionRepository';
 
 export class WebhookController {
   /**
@@ -121,20 +121,18 @@ export class WebhookController {
 
       // Atualizar status da transação local
       // Aqui você pode buscar a transação pelo ID do Asaas e atualizar
-      const transactions = await transactionStore.getAll();
-      const transaction = transactions.find(
-        t => t.provider_transaction_id === id
-      );
+      if (id) {
+        const transaction = await transactionRepository.findByProviderTransactionId(id);
+        if (transaction) {
+          await transactionRepository.update(transaction.reference_id, {
+            status: this.normalizeStatus(status),
+          });
 
-      if (transaction) {
-        await transactionStore.update(transaction.reference_id, {
-          status: this.normalizeStatus(status),
-        });
-
-        logger.info('Transaction status updated', {
-          reference_id: transaction.reference_id,
-          new_status: status,
-        });
+          logger.info('Transaction status updated', {
+            reference_id: transaction.reference_id,
+            new_status: status,
+          });
+        }
       }
 
       // Sempre retornar 200 OK para o Asaas

@@ -3,9 +3,9 @@ import { v4 as uuidv4 } from 'uuid';
 import { logger } from '../utils/logger';
 import { validatePixKey, validateAmount, sanitizeDescription } from '../utils/validators';
 import { providerFactory } from '../services/providerFactory';
-import { transactionStore } from '../utils/transactionStore';
 import { PixPayoutRequest, ApiResponse, TransactionLog } from '../types';
 import { config } from '../config/env';
+import { transactionRepository } from '../repositories/transactionRepository';
 
 export class PixPayoutController {
   /**
@@ -34,7 +34,7 @@ export class PixPayoutController {
       });
 
       // Verificar duplicata (idempotência)
-      const existingTransaction = await transactionStore.findByReferenceId(referenceId);
+      const existingTransaction = await transactionRepository.findByReferenceId(referenceId);
       if (existingTransaction) {
         logger.info('Duplicate transaction detected', { reference_id: referenceId });
 
@@ -49,18 +49,14 @@ export class PixPayoutController {
       }
 
       // Criar registro de transação
-      const transaction: TransactionLog = {
-        id: uuidv4(),
+      const transaction: TransactionLog = await transactionRepository.create({
         reference_id: referenceId,
         chave_pix,
         valor: parseFloat(valor.toString()),
         status: 'pending',
         descricao: sanitizedDescription,
-        created_at: new Date(),
         provider: config.provider,
-      };
-
-      await transactionStore.save(transaction);
+      });
 
       // Preparar dados para o provider
       const transferData = {
@@ -75,7 +71,7 @@ export class PixPayoutController {
       const providerResponse = await provider.createPixTransfer(transferData);
 
       // Atualizar transação com sucesso
-      await transactionStore.update(referenceId, {
+      await transactionRepository.update(referenceId, {
         status: 'completed',
         provider_transaction_id: providerResponse.id,
       });
@@ -106,7 +102,7 @@ export class PixPayoutController {
       // Tentar atualizar status da transação para failed
       const { id_transacao } = req.body as PixPayoutRequest;
       if (id_transacao) {
-        await transactionStore.update(id_transacao, {
+        await transactionRepository.update(id_transacao, {
           status: 'failed',
           error_message: error instanceof Error ? error.message : 'Unknown error',
         });
@@ -130,7 +126,7 @@ export class PixPayoutController {
 
       logger.info('Retrieving transaction status', { reference_id: referenceId });
 
-      const transaction = await transactionStore.findByReferenceId(referenceId);
+      const transaction = await transactionRepository.findByReferenceId(referenceId);
 
       if (!transaction) {
         res.status(404).json({
@@ -151,7 +147,7 @@ export class PixPayoutController {
 
           // Atualizar status local se necessário
           if (providerStatus.status !== transaction.status) {
-            await transactionStore.update(referenceId, {
+            await transactionRepository.update(referenceId, {
               status: providerStatus.status,
             });
             transaction.status = providerStatus.status;
@@ -183,7 +179,7 @@ export class PixPayoutController {
     next: NextFunction
   ): Promise<void> {
     try {
-      const transactions = await transactionStore.getAll();
+      const transactions = await transactionRepository.getAll();
 
       res.status(200).json({
         success: true,

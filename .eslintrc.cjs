@@ -15,9 +15,17 @@ module.exports = {
     'plugin:import/recommended',
     'plugin:import/typescript'
   ],
+  rules: {
+    'import/no-named-as-default-member': 'off',
+  },
   settings: {
     react: {
       version: 'detect',
+    },
+    'import/resolver': {
+      typescript: {
+        project: ['./apps/api/tsconfig.json', './apps/web/tsconfig.json'],
+      },
     },
   },
   overrides: [
