@@ -63,9 +63,9 @@ RLS: políticas service_role-only já aplicadas (ver `migrations/rls.sql`).
   - status do gift
 
 ### Legado (payout direto)
-- `POST /api/pix-payout`
-- `GET /api/pix-payout/:referenceId`
-- `GET /api/pix-payout`
+- `POST /api/pix-payout` (deprecated)
+- `GET /api/pix-payout/:referenceId` (deprecated)
+- `GET /api/pix-payout` (deprecated)
 
 ## Notas de segurança
 - Use service role para Prisma/Supabase (não exponha `anon` no backend).
@@ -74,6 +74,6 @@ RLS: políticas service_role-only já aplicadas (ver `migrations/rls.sql`).
 - API Key obrigatória nos endpoints (exceto health).
 
 ## Deploy
-- Ajustar `render.yaml`/Docker para monorepo (apps/api).
-- Garantir envs: DB URLs, providers, `API_SECRET_KEY`, `PORT`.
-- Rodar `npm run build` e `npm start` (API) em produção.
+- Render: `render.yaml` usa npm e workspace `@giftpix/api`; start: `node apps/api/dist/server.js`.
+- Garanta envs: DB URLs (Supabase), providers, `API_SECRET_KEY`, `PORT` (ou deixe Render injetar), API keys.
+- Prisma: `npm run prisma:generate --workspace @giftpix/infra` e `npm run build --workspace @giftpix/api` já estão no buildCommand do Render.
