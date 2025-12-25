@@ -10,6 +10,7 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json();
+    console.info('[api/gifts] proxying create gift');
     const resp = await fetch(`${apiUrl}/gifts`, {
       method: 'POST',
       headers: {
@@ -19,8 +20,10 @@ export async function POST(request: Request) {
       body: JSON.stringify(body),
     });
     const data = await resp.json();
+    console.info('[api/gifts] response', { status: resp.status });
     return NextResponse.json(data, { status: resp.status });
   } catch (error) {
+    console.error('[api/gifts] error', error);
     return NextResponse.json(
       { success: false, error: { message: error instanceof Error ? error.message : 'Unknown error' } },
       { status: 500 }

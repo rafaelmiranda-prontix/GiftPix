@@ -1,7 +1,8 @@
 /* eslint-disable @next/next/no-img-element */
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, useCallback } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { Button, Card, Input } from '@giftpix/ui';
 import { supabase } from '../lib/supabaseClient';
 
@@ -49,6 +50,7 @@ const translateStatus = (status: string | undefined): string => {
 };
 
 export default function Home() {
+  const searchParams = useSearchParams();
   const [sessionEmail, setSessionEmail] = useState<string | null>(null);
   const [authError, setAuthError] = useState<string | null>(null);
   const [isLoadingAuth, setIsLoadingAuth] = useState(false);
@@ -88,6 +90,26 @@ export default function Home() {
     }, 3200);
   };
 
+  const fetchStatus = useCallback(async (referenceId: string) => {
+    setIsStatusLoading(true);
+    setStatusError(null);
+    setStatusData(null);
+    try {
+      const resp = await fetch(`/api/gifts/${referenceId}`);
+      const data = await resp.json();
+      if (!resp.ok || data?.success === false || !data?.data?.gift) {
+        throw new Error(data?.error?.message || 'Erro ao consultar');
+      }
+      setStatusData(data.data as GiftStatusResponse);
+      pushToast('Status atualizado', 'info');
+    } catch (error) {
+      setStatusError(error instanceof Error ? error.message : 'Erro desconhecido');
+      pushToast(error instanceof Error ? error.message : 'Erro desconhecido', 'error');
+    } finally {
+      setIsStatusLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
       setSessionEmail(data.session?.user.email || null);
@@ -99,6 +121,14 @@ export default function Home() {
       data.subscription.unsubscribe();
     };
   }, []);
+
+  useEffect(() => {
+    const ref = searchParams.get('ref');
+    if (ref) {
+      setRedeemPayload((prev) => ({ ...prev, reference_id: ref }));
+      fetchStatus(ref);
+    }
+  }, [searchParams, fetchStatus]);
 
   const handleSignIn = async (email: string, password: string) => {
     setIsLoadingAuth(true);
@@ -122,6 +152,13 @@ export default function Home() {
   };
 
   const canUseApp = useMemo(() => !!sessionEmail, [sessionEmail]);
+
+  const origin =
+    typeof window !== 'undefined'
+      ? window.location.origin
+      : process.env.NEXT_PUBLIC_SITE_URL || '';
+  const shareLink =
+    createResult && origin ? `${origin}/?ref=${createResult.reference_id}` : '';
 
   const createGift = async () => {
     setIsCreating(true);
@@ -180,26 +217,6 @@ export default function Home() {
     }
   };
 
-  const fetchStatus = async (referenceId: string) => {
-    setIsStatusLoading(true);
-    setStatusError(null);
-    setStatusData(null);
-    try {
-      const resp = await fetch(`/api/gifts/${referenceId}`);
-      const data = await resp.json();
-      if (!resp.ok || data?.success === false || !data?.data?.gift) {
-        throw new Error(data?.error?.message || 'Erro ao consultar');
-      }
-      setStatusData(data.data as GiftStatusResponse);
-      pushToast('Status atualizado', 'info');
-    } catch (error) {
-      setStatusError(error instanceof Error ? error.message : 'Erro desconhecido');
-      pushToast(error instanceof Error ? error.message : 'Erro desconhecido', 'error');
-    } finally {
-      setIsStatusLoading(false);
-    }
-  };
-
   return (
     <main className="mx-auto flex min-h-screen max-w-6xl flex-col gap-8 px-4 py-12 sm:py-16">
       <ToastStack toasts={toasts} />
@@ -220,10 +237,20 @@ export default function Home() {
             <span className="rounded-full bg-white/10 px-3 py-1">Prisma + Supabase</span>
           </div>
           <div className="flex flex-wrap gap-3">
-            <Button intent="primary" size="lg" onClick={createGift} disabled={isCreating || !createPayload.pin}>
+            <Button
+              intent="primary"
+              size="lg"
+              onClick={createGift}
+              disabled={isCreating || !createPayload.pin || Number(createPayload.amount) <= 0}
+            >
               {isCreating ? 'Criando gift...' : 'Criar gift agora'}
             </Button>
-            <Button intent="secondary" size="lg" onClick={redeemGift} disabled={isRedeeming}>
+            <Button
+              intent="secondary"
+              size="lg"
+              onClick={redeemGift}
+              disabled={isRedeeming || !redeemPayload.reference_id || !redeemPayload.pin || !redeemPayload.pix_key}
+            >
               {isRedeeming ? 'Processando...' : 'Resgatar gift'}
             </Button>
           </div>
@@ -233,6 +260,20 @@ export default function Home() {
               <span className="font-semibold text-cyan-100">Gift criado!</span>
               <span>Reference ID: {createResult.reference_id}</span>
               <span>PIN: {createResult.pin}</span>
+              {shareLink && (
+                <button
+                  type="button"
+                  className="rounded-full bg-white/20 px-3 py-1 text-xs font-semibold text-white transition hover:bg-white/30"
+                  onClick={() => {
+                    navigator.clipboard.writeText(shareLink).then(
+                      () => pushToast('Link copiado', 'success'),
+                      () => pushToast('Erro ao copiar', 'error')
+                    );
+                  }}
+                >
+                  Copiar link de resgate
+                </button>
+              )}
             </div>
           )}
         </div>
@@ -246,146 +287,161 @@ export default function Home() {
         />
       </header>
 
-      {!canUseApp ? (
-        <Card className="border-cyan-200/30 bg-white/10 text-white">
-          <p className="text-sm text-slate-200">
-            Faça login com Supabase para usar o dashboard. Use a conta configurada no projeto (email/senha). Apenas para uso interno.
-          </p>
-        </Card>
-      ) : (
-        <div className="grid gap-6 lg:grid-cols-2">
-          <Card className="bg-gradient-to-br from-white to-slate-50/80">
-            <SectionTitle title="Criar Gift" subtitle="Defina valor, mensagem e PIN para compartilhar." />
-            <div className="mt-4 space-y-3">
-              <div className="grid gap-3 sm:grid-cols-2">
-                <Input
-                  label="Valor (R$)"
-                  type="number"
-                  min="1"
-                  value={createPayload.amount}
-                  onChange={(e) => setCreatePayload({ ...createPayload, amount: e.target.value })}
-                />
-                <Input
-                  label="PIN"
-                  type="text"
-                  placeholder="Segredo do gift"
-                  value={createPayload.pin}
-                  onChange={(e) => setCreatePayload({ ...createPayload, pin: e.target.value })}
-                />
-              </div>
-              <Input
-                label="Mensagem"
-                placeholder="Feliz aniversário!"
-                value={createPayload.message}
-                onChange={(e) => setCreatePayload({ ...createPayload, message: e.target.value })}
-              />
-              <Input
-                label="Descrição (opcional)"
-                placeholder="GiftPix especial"
-                value={createPayload.description}
-                onChange={(e) => setCreatePayload({ ...createPayload, description: e.target.value })}
-              />
-              <Input
-                label="Expira em (opcional)"
-                type="datetime-local"
-                value={createPayload.expires_at}
-                onChange={(e) => setCreatePayload({ ...createPayload, expires_at: e.target.value })}
-              />
-              <div className="flex items-center justify-between">
-                <Button intent="primary" size="lg" onClick={createGift} disabled={isCreating || !createPayload.pin}>
-                  {isCreating ? 'Criando...' : 'Criar Gift'}
-                </Button>
-                {createError && <p className="text-sm text-rose-500">{createError}</p>}
-              </div>
-              {createResult && (
-                <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm text-slate-800">
-                  <p><strong>Reference ID:</strong> {createResult.reference_id}</p>
-                  <p><strong>PIN:</strong> {createResult.pin}</p>
-                </div>
-              )}
+      <div className="grid gap-6 lg:grid-cols-2">
+        <Card className="relative bg-gradient-to-br from-white to-slate-50/80">
+          {!canUseApp && (
+            <div className="absolute inset-0 z-10 flex items-center justify-center rounded-2xl bg-white/70 text-sm font-medium text-slate-700">
+              Faça login para criar gifts.
             </div>
-          </Card>
-
-          <Card className="bg-gradient-to-br from-white to-slate-50/80">
-            <SectionTitle title="Resgatar Gift" subtitle="Valide PIN e informe a chave Pix para receber." />
-            <div className="mt-4 space-y-3">
+          )}
+          <SectionTitle title="Criar Gift" subtitle="Defina valor, mensagem e PIN para compartilhar." />
+          <div className="mt-4 space-y-3">
+            <div className="grid gap-3 sm:grid-cols-2">
               <Input
-                label="Reference ID"
-                value={redeemPayload.reference_id}
-                onChange={(e) => setRedeemPayload({ ...redeemPayload, reference_id: e.target.value })}
+                label="Valor (R$)"
+                type="number"
+                min="1"
+                value={createPayload.amount}
+                onChange={(e) => setCreatePayload({ ...createPayload, amount: e.target.value })}
+                disabled={!canUseApp}
               />
-              <div className="grid gap-3 sm:grid-cols-2">
-                <Input
-                  label="PIN"
-                  value={redeemPayload.pin}
-                  onChange={(e) => setRedeemPayload({ ...redeemPayload, pin: e.target.value })}
-                />
-                <Input
-                  label="Chave Pix"
-                  placeholder="email/telefone/CPF/CNPJ/EVP"
-                  value={redeemPayload.pix_key}
-                  onChange={(e) => setRedeemPayload({ ...redeemPayload, pix_key: e.target.value })}
-                />
-              </div>
               <Input
-                label="Descrição (opcional)"
-                value={redeemPayload.description}
-                onChange={(e) => setRedeemPayload({ ...redeemPayload, description: e.target.value })}
+                label="PIN"
+                type="text"
+                placeholder="Segredo do gift"
+                value={createPayload.pin}
+                onChange={(e) => setCreatePayload({ ...createPayload, pin: e.target.value })}
+                disabled={!canUseApp}
               />
-              <div className="flex items-center justify-between">
-                <Button intent="primary" size="lg" onClick={redeemGift} disabled={isRedeeming}>
-                  {isRedeeming ? 'Processando...' : 'Resgatar Gift'}
-                </Button>
-                {redeemError && <p className="text-sm text-rose-500">{redeemError}</p>}
-              </div>
-              {redeemResult && (
-                <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm text-slate-800">
-                  <p><strong>Provider:</strong> {redeemResult.provider}</p>
-                  <p><strong>ID Transfer:</strong> {redeemResult.transfer?.id}</p>
-                  <p><strong>Status:</strong> {redeemResult.transfer?.status}</p>
-                </div>
-              )}
             </div>
-          </Card>
-        </div>
-      )}
-
-      {canUseApp && (
-        <Card className="bg-gradient-to-br from-white to-slate-50/80">
-          <SectionTitle title="Status do Gift" subtitle="Consulte a situação de um gift já criado." />
-          <div className="mt-4 flex flex-col gap-3 sm:flex-row">
             <Input
-              className="sm:max-w-sm"
+              label="Mensagem"
+              placeholder="Feliz aniversário!"
+              value={createPayload.message}
+              onChange={(e) => setCreatePayload({ ...createPayload, message: e.target.value })}
+              disabled={!canUseApp}
+            />
+            <Input
+              label="Descrição (opcional)"
+              placeholder="GiftPix especial"
+              value={createPayload.description}
+              onChange={(e) => setCreatePayload({ ...createPayload, description: e.target.value })}
+              disabled={!canUseApp}
+            />
+            <Input
+              label="Expira em (opcional)"
+              type="datetime-local"
+              value={createPayload.expires_at}
+              onChange={(e) => setCreatePayload({ ...createPayload, expires_at: e.target.value })}
+              disabled={!canUseApp}
+            />
+            <div className="flex items-center justify-between">
+              <Button
+                intent="primary"
+                size="lg"
+                onClick={createGift}
+                disabled={!canUseApp || isCreating || !createPayload.pin || Number(createPayload.amount) <= 0}
+              >
+                {isCreating ? 'Criando...' : 'Criar Gift'}
+              </Button>
+              {createError && <p className="text-sm text-rose-500">{createError}</p>}
+            </div>
+            {createResult && (
+              <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm text-slate-800">
+                <p><strong>Reference ID:</strong> {createResult.reference_id}</p>
+                <p><strong>PIN:</strong> {createResult.pin}</p>
+              </div>
+            )}
+          </div>
+        </Card>
+
+        <Card className="bg-gradient-to-br from-white to-slate-50/80">
+          <SectionTitle title="Resgatar Gift" subtitle="Informe PIN e chave Pix para receber." />
+          <div className="mt-2 text-sm text-slate-600">
+            {statusData?.gift?.message
+              ? `Mensagem: ${statusData.gift.message}`
+              : 'Parabéns! Resgate seu GiftPix.'}
+          </div>
+          <div className="mt-4 space-y-3">
+            <Input
               label="Reference ID"
               value={redeemPayload.reference_id}
               onChange={(e) => setRedeemPayload({ ...redeemPayload, reference_id: e.target.value })}
             />
-            <Button intent="secondary" size="md" onClick={() => fetchStatus(redeemPayload.reference_id)} disabled={isStatusLoading}>
-              {isStatusLoading ? 'Consultando...' : 'Consultar'}
-            </Button>
-            {statusError && <p className="text-sm text-rose-500">{statusError}</p>}
-          </div>
-          {statusData && (
-            <div className="mt-3 rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm text-slate-800">
-              {statusData.gift ? (
-                <>
-                  <p><strong>Reference ID:</strong> {statusData.gift.reference_id}</p>
-                  <p><strong>Status do Gift:</strong> {translateStatus(statusData.gift.status)}</p>
-                  <p><strong>Status do Pix:</strong> {translateStatus(statusData.paymentStatus)}</p>
-                  {statusData.providerRef && <p><strong>ID Transfer:</strong> {statusData.providerRef}</p>}
-                  <p><strong>Valor:</strong> R$ {statusData.gift.amount?.toFixed(2)}</p>
-                  {statusData.gift.message && <p><strong>Mensagem:</strong> {statusData.gift.message}</p>}
-                  {statusData.gift.expires_at && (
-                    <p><strong>Expira em:</strong> {new Date(statusData.gift.expires_at).toLocaleString()}</p>
-                  )}
-                </>
-              ) : (
-                <p className="text-rose-600">Gift não encontrado</p>
-              )}
+            <div className="grid gap-3 sm:grid-cols-2">
+              <Input
+                label="PIN"
+                value={redeemPayload.pin}
+                onChange={(e) => setRedeemPayload({ ...redeemPayload, pin: e.target.value })}
+              />
+              <Input
+                label="Chave Pix"
+                placeholder="email/telefone/CPF/CNPJ/EVP"
+                value={redeemPayload.pix_key}
+                onChange={(e) => setRedeemPayload({ ...redeemPayload, pix_key: e.target.value })}
+              />
             </div>
-          )}
+            <Input
+              label="Descrição (opcional)"
+              value={redeemPayload.description}
+              onChange={(e) => setRedeemPayload({ ...redeemPayload, description: e.target.value })}
+            />
+            <div className="flex items-center justify-between">
+              <Button
+                intent="primary"
+                size="lg"
+                onClick={redeemGift}
+                disabled={isRedeeming || !redeemPayload.reference_id || !redeemPayload.pin || !redeemPayload.pix_key}
+              >
+                {isRedeeming ? 'Processando...' : 'Resgatar Gift'}
+              </Button>
+              {redeemError && <p className="text-sm text-rose-500">{redeemError}</p>}
+            </div>
+            {redeemResult && (
+              <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm text-slate-800">
+                <p><strong>Provider:</strong> {redeemResult.provider}</p>
+                <p><strong>ID Transfer:</strong> {redeemResult.transfer?.id}</p>
+                <p><strong>Status:</strong> {redeemResult.transfer?.status}</p>
+              </div>
+            )}
+          </div>
         </Card>
-      )}
+      </div>
+
+      <Card className="bg-gradient-to-br from-white to-slate-50/80">
+        <SectionTitle title="Status do Gift" subtitle="Consulte a situação de um gift já criado." />
+        <div className="mt-4 flex flex-col gap-3 sm:flex-row">
+          <Input
+            className="sm:max-w-sm"
+            label="Reference ID"
+            value={redeemPayload.reference_id}
+            onChange={(e) => setRedeemPayload({ ...redeemPayload, reference_id: e.target.value })}
+          />
+          <Button intent="secondary" size="md" onClick={() => fetchStatus(redeemPayload.reference_id)} disabled={isStatusLoading}>
+            {isStatusLoading ? 'Consultando...' : 'Consultar'}
+          </Button>
+          {statusError && <p className="text-sm text-rose-500">{statusError}</p>}
+        </div>
+        {statusData && (
+          <div className="mt-3 rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm text-slate-800">
+            {statusData.gift ? (
+              <>
+                <p><strong>Reference ID:</strong> {statusData.gift.reference_id}</p>
+                <p><strong>Status do Gift:</strong> {translateStatus(statusData.gift.status)}</p>
+                <p><strong>Status do Pix:</strong> {translateStatus(statusData.paymentStatus)}</p>
+                {statusData.providerRef && <p><strong>ID Transfer:</strong> {statusData.providerRef}</p>}
+                <p><strong>Valor:</strong> R$ {statusData.gift.amount?.toFixed(2)}</p>
+                {statusData.gift.message && <p><strong>Mensagem:</strong> {statusData.gift.message}</p>}
+                {statusData.gift.expires_at && (
+                  <p><strong>Expira em:</strong> {new Date(statusData.gift.expires_at).toLocaleString()}</p>
+                )}
+              </>
+            ) : (
+              <p className="text-rose-600">Gift não encontrado</p>
+            )}
+          </div>
+        )}
+      </Card>
     </main>
   );
 }
