@@ -6,7 +6,19 @@ export class QRCodeGenerator {
   private baseUrl: string;
 
   constructor(baseUrl?: string) {
-    this.baseUrl = baseUrl || `http://localhost:${config.port}`;
+    // Se não fornecido, detectar automaticamente baseado no ambiente
+    if (baseUrl) {
+      this.baseUrl = baseUrl;
+    } else if (config.nodeEnv === 'production' && process.env.RENDER_EXTERNAL_URL) {
+      // Render fornece RENDER_EXTERNAL_URL em produção
+      this.baseUrl = process.env.RENDER_EXTERNAL_URL;
+    } else if (config.nodeEnv === 'production') {
+      // Fallback para produção sem RENDER_EXTERNAL_URL
+      this.baseUrl = `https://${process.env.RENDER_SERVICE_NAME || 'seu-app'}.onrender.com`;
+    } else {
+      // Desenvolvimento local
+      this.baseUrl = `http://localhost:${config.port}`;
+    }
   }
 
   /**

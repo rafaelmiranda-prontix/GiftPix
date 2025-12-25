@@ -453,9 +453,14 @@
                     })
                 });
 
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => ({ error: { message: `Erro HTTP ${response.status}` } }));
+                    throw new Error(errorData.error?.message || `Erro HTTP ${response.status}`);
+                }
+
                 const result = await response.json();
 
-                if (result.success) {
+                if (result.success && result.data && result.data.qrcode) {
                     // Mostrar QR Code
                     document.getElementById('qrcodeImage').src = result.data.qrcode;
                     qrcodeContainer.classList.add('show');
@@ -464,10 +469,12 @@
                     qrcodeContainer.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
                 } else {
                     showError(result.error?.message || 'Erro ao gerar QR Code. Tente novamente!');
+                    console.error('Resposta da API:', result);
                 }
             } catch (error) {
-                console.error('Erro:', error);
-                showError('Erro ao conectar com o servidor. Verifique se a API está rodando!');
+                console.error('Erro completo:', error);
+                const errorMsg = error instanceof Error ? error.message : 'Erro desconhecido';
+                showError(`Erro: ${errorMsg}. Verifique se a API está rodando e a API Key está correta!`);
             } finally {
                 submitBtn.disabled = false;
                 loading.classList.remove('show');

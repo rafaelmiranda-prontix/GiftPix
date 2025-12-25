@@ -27,7 +27,8 @@ export class QRCodeController {
 
       // Verificar se é para a página de Natal (valor fixo de 300,00)
       const isNatal = parseFloat(valor.toString()) === 300.00 && 
-                      sanitizedDescription.toLowerCase().includes('natal');
+                      (sanitizedDescription.toLowerCase().includes('natal') || 
+                       sanitizedDescription.toLowerCase().includes('presente'));
 
       const qrCodeData = await qrCodeGenerator.generateQRCodeDataURL({
         chave_pix,
