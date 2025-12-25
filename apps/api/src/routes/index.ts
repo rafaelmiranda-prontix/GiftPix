@@ -138,6 +138,11 @@ router.get(
   authenticateApiKey,
   giftController.getStatus.bind(giftController)
 );
+router.get(
+  '/gifts/:referenceId/qrcode',
+  authenticateApiKey,
+  giftController.qrCode.bind(giftController)
+);
 
 /**
  * Rotas de QR Code (protegidas)

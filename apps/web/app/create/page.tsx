@@ -99,6 +99,9 @@ export default function CreateGiftPage() {
         pin: data?.data?.pin,
         amount: data?.data?.gift?.amount,
       });
+      if (data?.data?.gift?.reference_id && data?.data?.pin) {
+        localStorage.setItem(`gift_pin_${data.data.gift.reference_id}`, data.data.pin);
+      }
       setStep(4);
     } catch (errSubmit) {
       setError(errSubmit instanceof Error ? errSubmit.message : 'Erro inesperado');

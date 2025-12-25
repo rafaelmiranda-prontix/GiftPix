@@ -2,6 +2,8 @@ import { Request, Response, NextFunction } from 'express';
 import { giftService } from '../services/giftService';
 import { ValidationError } from '../utils/validators';
 import { ApiResponse } from '../types';
+import QRCode from 'qrcode';
+import { config } from '../config/env';
 
 class GiftController {
   async create(req: Request, res: Response, next: NextFunction): Promise<void> {
@@ -115,6 +117,36 @@ class GiftController {
       res.status(200).json({
         success: true,
         data: summary,
+      } as ApiResponse);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async qrCode(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { referenceId } = req.params;
+      const gift = await giftService.getGiftStatus(referenceId);
+
+      if (!gift) {
+        res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Gift não encontrado' } });
+        return;
+      }
+
+      const url = `${config.frontendUrl}/status?ref=${referenceId}`;
+      const dataUrl = await QRCode.toDataURL(url, {
+        errorCorrectionLevel: 'H',
+        type: 'image/png',
+        width: 300,
+        margin: 2,
+      });
+
+      res.status(200).json({
+        success: true,
+        data: {
+          qrDataUrl: dataUrl,
+          url,
+        },
       } as ApiResponse);
     } catch (error) {
       next(error);

@@ -217,6 +217,11 @@ export default function DashboardPage() {
                   >
                     Copiar para compartilhar
                   </button>
+                  <Link href={`/dashboard/gifts/${gift.reference_id}`}>
+                    <Button intent="secondary" size="sm">
+                      Ver detalhes
+                    </Button>
+                  </Link>
                 </div>
               </Card>
             ))}
