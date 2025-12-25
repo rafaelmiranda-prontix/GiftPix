@@ -71,6 +71,11 @@ export const paymentRepository = {
     return payment ? mapToDomain(payment) : null;
   },
 
+  async findByGiftId(gift_id: string): Promise<DomainPayment | null> {
+    const payment = await prisma.payment.findFirst({ where: { giftId: gift_id } });
+    return payment ? mapToDomain(payment) : null;
+  },
+
   async updateStatus(
     id: string,
     status: PaymentStatus,

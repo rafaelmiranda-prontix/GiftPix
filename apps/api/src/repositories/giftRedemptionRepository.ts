@@ -1,5 +1,5 @@
 import { prisma } from '@giftpix/infra';
-import { GiftRedemptionStatus as DbRedemptionStatus, Provider as DbProvider, GiftRedemption } from '@prisma/client';
+import { RedemptionStatus as DbRedemptionStatus, Provider as DbProvider, GiftRedemption } from '@prisma/client';
 import { GiftRedemption as DomainRedemption, ProviderName, RedemptionStatus } from '../types';
 
 const providerToDb = (provider: ProviderName): DbProvider => (provider === 'asaas' ? 'ASAAS' : 'PAGBANK');

@@ -1,5 +1,5 @@
 import { config } from '../config/env';
-import { PaymentProvider } from '../types';
+import { PaymentProvider, ProviderName } from '../types';
 import { asaasService } from './asaasService';
 import { PagBankService } from './pagbankService';
 import { logger } from '../utils/logger';
@@ -33,7 +33,7 @@ class ProviderFactory {
   /**
    * Retorna um provider específico (útil para testes)
    */
-  getProviderByName(name: 'asaas' | 'pagbank'): PaymentProvider {
+  getProviderByName(name: ProviderName): PaymentProvider {
     const provider = this.providers.get(name);
 
     if (!provider) {

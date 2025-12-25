@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { pixPayoutController } from '../controllers/pixPayoutController';
 import { qrCodeController } from '../controllers/qrcodeController';
 import { webhookController } from '../controllers/webhookController';
+import { giftController } from '../controllers/giftController';
 import { authenticateApiKey } from '../middlewares/auth';
 
 const router = Router();
@@ -119,6 +120,21 @@ router.get(
   '/pix-payout',
   authenticateApiKey,
   pixPayoutController.listPayouts.bind(pixPayoutController)
+);
+
+/**
+ * Rotas de Gift (protegidas)
+ */
+router.post('/gifts', authenticateApiKey, giftController.create.bind(giftController));
+router.post(
+  '/gifts/:referenceId/redeem',
+  authenticateApiKey,
+  giftController.redeem.bind(giftController)
+);
+router.get(
+  '/gifts/:referenceId',
+  authenticateApiKey,
+  giftController.getStatus.bind(giftController)
 );
 
 /**
