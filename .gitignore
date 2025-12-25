@@ -36,3 +36,5 @@ coverage/
 *.pem
 *.p12
 certificates/
+.next/
+out/

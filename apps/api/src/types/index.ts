@@ -32,7 +32,7 @@ export interface PagBankTransferResponse {
   description?: string;
 }
 
-export interface ApiResponse<T = any> {
+export interface ApiResponse<T = unknown> {
   success: boolean;
   data?: T;
   error?: {
@@ -81,18 +81,27 @@ export interface QRCodeGenerationRequest {
   descricao?: string;
 }
 
-// Provider interface for abstraction
-export interface PaymentProvider {
-  createPixTransfer(data: any): Promise<ProviderTransferResponse>;
-  getTransferStatus(transferId: string): Promise<ProviderTransferResponse>;
+export type ProviderStatus = 'pending' | 'completed' | 'failed';
+
+export interface PixTransferData {
+  pix_key: string;
+  amount: number;
+  description?: string;
+  reference_id?: string;
 }
 
 export interface ProviderTransferResponse {
   id: string;
   reference_id?: string;
-  status: string;
+  status: ProviderStatus;
   amount: number;
   created_at: string;
   pix_key: string;
   description?: string;
+}
+
+// Provider interface for abstraction
+export interface PaymentProvider {
+  createPixTransfer(data: PixTransferData): Promise<ProviderTransferResponse>;
+  getTransferStatus(transferId: string): Promise<ProviderTransferResponse>;
 }

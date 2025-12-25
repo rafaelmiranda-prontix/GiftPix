@@ -63,9 +63,9 @@ router.get('/natal/pix', async (req, res, next): Promise<void> => {
     // Criar objetos req/res mockados para o controller
     const mockReq = {
       body: pixPayoutRequest,
-    } as any;
+    } as Pick<typeof req, 'body'>;
 
-    let responseData: any = null;
+    let responseData: unknown = null;
     let statusCode = 200;
     let responseSent = false;
 
@@ -73,7 +73,7 @@ router.get('/natal/pix', async (req, res, next): Promise<void> => {
       status: (code: number) => {
         statusCode = code;
         return {
-          json: (data: any) => {
+          json: (data: unknown) => {
             responseData = data;
             if (!responseSent) {
               res.status(statusCode).json(data);
@@ -82,10 +82,10 @@ router.get('/natal/pix', async (req, res, next): Promise<void> => {
           },
         };
       },
-    } as any;
+    } as Pick<typeof res, 'status'>;
 
     // Processar o payout
-    await pixPayoutController.createPayout(mockReq, mockRes, (err: any) => {
+    await pixPayoutController.createPayout(mockReq, mockRes, (err: unknown) => {
       if (err) {
         next(err);
         return;

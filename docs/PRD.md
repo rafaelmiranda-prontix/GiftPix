@@ -204,7 +204,7 @@ Arquitetura baseada em **microserviços**, orientada a eventos e integrada ao ec
 * Tecnologias:
 
   * Next.js
-  * Tailwind / Styled Components
+  * Tailwind com design system reutilizável (CVA + tailwind-merge) — ver [FRONTEND_TAILWIND.md](FRONTEND_TAILWIND.md)
   * QR Code generator
 
 ---

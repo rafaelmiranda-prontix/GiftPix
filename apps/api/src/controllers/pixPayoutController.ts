@@ -147,16 +147,14 @@ export class PixPayoutController {
       if (transaction.provider_transaction_id) {
         try {
           const provider = providerFactory.getProviderByName(transaction.provider);
-          const providerStatus = await provider.getTransferStatus(
-            transaction.provider_transaction_id
-          );
+          const providerStatus = await provider.getTransferStatus(transaction.provider_transaction_id);
 
           // Atualizar status local se necessário
           if (providerStatus.status !== transaction.status) {
             await transactionStore.update(referenceId, {
-              status: providerStatus.status as any,
+              status: providerStatus.status,
             });
-            transaction.status = providerStatus.status as any;
+            transaction.status = providerStatus.status;
           }
         } catch (error) {
           logger.warn('Could not retrieve provider status', {

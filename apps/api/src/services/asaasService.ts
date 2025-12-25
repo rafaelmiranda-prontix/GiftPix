@@ -6,6 +6,8 @@ import {
   AsaasTransferResponse,
   PaymentProvider,
   ProviderTransferResponse,
+  PixTransferData,
+  ProviderStatus,
 } from '../types';
 
 export class AsaasError extends Error {
@@ -13,7 +15,7 @@ export class AsaasError extends Error {
     message: string,
     public statusCode?: number,
     public errorCode?: string,
-    public details?: any
+    public details?: unknown
   ) {
     super(message);
     this.name = 'AsaasError';
@@ -67,10 +69,10 @@ export class AsaasService implements PaymentProvider {
     );
   }
 
-  private sanitizeLogData(data: any): any {
-    if (!data) return data;
+  private sanitizeLogData(data: unknown): unknown {
+    if (!data || typeof data !== 'object') return data;
 
-    const sanitized = { ...data };
+    const sanitized: Record<string, unknown> = { ...(data as Record<string, unknown>) };
     const sensitiveFields = ['access_token', 'apiKey', 'password', 'authorization'];
 
     sensitiveFields.forEach((field) => {
@@ -90,7 +92,7 @@ export class AsaasService implements PaymentProvider {
         data: this.sanitizeLogData(data),
       });
 
-      const errorData = data as any;
+      const errorData = data as { errors?: { description?: string; code?: string }[] };
       throw new AsaasError(
         errorData?.errors?.[0]?.description || `Asaas API Error: ${status}`,
         status,
@@ -135,11 +137,7 @@ export class AsaasService implements PaymentProvider {
    * Cria uma transferência PIX via Asaas
    * Documentação: https://docs.asaas.com/reference/transferir-para-conta-de-outra-instituicao-ou-chave-pix
    */
-  async createPixTransfer(transferData: {
-    pix_key: string;
-    amount: number;
-    description?: string;
-  }): Promise<ProviderTransferResponse> {
+  async createPixTransfer(transferData: PixTransferData): Promise<ProviderTransferResponse> {
     try {
       const pixKeyType = this.detectPixKeyType(transferData.pix_key);
 
@@ -218,8 +216,8 @@ export class AsaasService implements PaymentProvider {
   /**
    * Normaliza status do Asaas para formato padrão
    */
-  private normalizeStatus(asaasStatus: string): string {
-    const statusMap: Record<string, string> = {
+  private normalizeStatus(asaasStatus: string): ProviderStatus {
+    const statusMap: Record<string, ProviderStatus> = {
       'PENDING': 'pending',
       'BANK_PROCESSING': 'pending',
       'DONE': 'completed',

@@ -6,6 +6,8 @@ import {
   PagBankTransferResponse,
   PaymentProvider,
   ProviderTransferResponse,
+  PixTransferData,
+  ProviderStatus,
 } from '../types';
 
 export class PagBankError extends Error {
@@ -13,7 +15,7 @@ export class PagBankError extends Error {
     message: string,
     public statusCode?: number,
     public errorCode?: string,
-    public details?: any
+    public details?: unknown
   ) {
     super(message);
     this.name = 'PagBankError';
@@ -67,10 +69,10 @@ export class PagBankService implements PaymentProvider {
     );
   }
 
-  private sanitizeLogData(data: any): any {
-    if (!data) return data;
+  private sanitizeLogData(data: unknown): unknown {
+    if (!data || typeof data !== 'object') return data;
 
-    const sanitized = { ...data };
+    const sanitized: Record<string, unknown> = { ...(data as Record<string, unknown>) };
     const sensitiveFields = ['token', 'password', 'apiKey', 'authorization'];
 
     sensitiveFields.forEach(field => {
@@ -90,12 +92,7 @@ export class PagBankService implements PaymentProvider {
         data: this.sanitizeLogData(data),
       });
 
-      throw new PagBankError(
-        `PagBank API Error: ${status}`,
-        status,
-        (data as any)?.error_code,
-        data
-      );
+      throw new PagBankError(`PagBank API Error: ${status}`, status, (data as { error_code?: string })?.error_code, data);
     } else if (error.request) {
       logger.error('PagBank API No Response', { error: error.message });
       throw new PagBankError('Sem resposta da API PagBank - timeout ou erro de rede');
@@ -109,12 +106,7 @@ export class PagBankService implements PaymentProvider {
    * Cria uma transferência PIX via PagBank (implementa PaymentProvider)
    * Documentação: https://developer.pagbank.com.br/reference/criar-transferencia
    */
-  async createPixTransfer(transferData: {
-    pix_key: string;
-    amount: number;
-    description?: string;
-    reference_id?: string;
-  }): Promise<ProviderTransferResponse> {
+  async createPixTransfer(transferData: PixTransferData): Promise<ProviderTransferResponse> {
     try {
       logger.info('Creating PIX transfer via PagBank', {
         pix_key: transferData.pix_key,
@@ -195,8 +187,8 @@ export class PagBankService implements PaymentProvider {
   /**
    * Normaliza status do PagBank para formato padrão
    */
-  private normalizeStatus(pagBankStatus: string): string {
-    const statusMap: Record<string, string> = {
+  private normalizeStatus(pagBankStatus: string): ProviderStatus {
+    const statusMap: Record<string, ProviderStatus> = {
       'PENDING': 'pending',
       'PROCESSING': 'pending',
       'COMPLETED': 'completed',

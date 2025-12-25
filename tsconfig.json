@@ -3,6 +3,21 @@
   "references": [
     {
       "path": "./apps/api"
+    },
+    {
+      "path": "./apps/web"
+    },
+    {
+      "path": "./packages/infra"
+    },
+    {
+      "path": "./packages/shared"
+    },
+    {
+      "path": "./packages/utils"
+    },
+    {
+      "path": "./packages/ui"
     }
   ]
 }

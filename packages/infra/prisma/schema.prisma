@@ -1,0 +1,90 @@
+// Prisma schema for GiftPix
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../node_modules/.prisma/client"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Gift {
+  id           String    @id @default(uuid())
+  referenceId  String    @unique
+  amount       Decimal   @db.Decimal(10, 2)
+  status       GiftStatus @default(ACTIVE)
+  message      String?
+  pinHash      String
+  expiresAt    DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  redemptions  GiftRedemption[]
+  payments     Payment[]
+
+  @@index([status])
+  @@index([expiresAt])
+}
+
+model GiftRedemption {
+  id              String      @id @default(uuid())
+  giftId          String
+  pixKey          String
+  status          RedemptionStatus @default(PENDING)
+  provider        Provider
+  providerRef     String?
+  errorMessage    String?
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  gift            Gift        @relation(fields: [giftId], references: [id])
+}
+
+model Payment {
+  id              String      @id @default(uuid())
+  giftId          String
+  provider        Provider
+  providerRef     String?
+  amount          Decimal     @db.Decimal(10, 2)
+  status          PaymentStatus @default(PENDING)
+  errorMessage    String?
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  gift            Gift        @relation(fields: [giftId], references: [id])
+}
+
+model AuditLog {
+  id        String   @id @default(uuid())
+  entity    String
+  entityId  String
+  action    String
+  payload   Json
+  createdAt DateTime @default(now())
+
+  @@index([entity, createdAt])
+}
+
+enum GiftStatus {
+  ACTIVE
+  REDEEMED
+  EXPIRED
+}
+
+enum RedemptionStatus {
+  PENDING
+  COMPLETED
+  FAILED
+}
+
+enum PaymentStatus {
+  PENDING
+  COMPLETED
+  FAILED
+}
+
+enum Provider {
+  ASAAS
+  PAGBANK
+}
