@@ -113,7 +113,7 @@ export default function CreateGiftPage() {
   const shareUrl = useMemo(() => {
     if (!result?.reference_id) return '';
     const base = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
-    return `${base}/status?ref=${result.reference_id}`;
+    return `${base}/redeem?ref=${result.reference_id}`;
   }, [result?.reference_id]);
 
   const steps: { id: Step; label: string }[] = [

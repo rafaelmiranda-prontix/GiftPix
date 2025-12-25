@@ -218,6 +218,18 @@ class GiftService {
     return { gift: { ...gift, status: latestStatus === 'completed' ? 'redeemed' : gift.status }, paymentStatus: latestStatus, providerRef };
   }
 
+  async validatePin(reference_id: string, pin: string): Promise<Gift> {
+    const gift = await giftRepository.findByReferenceId(reference_id);
+    if (!gift) throw new ValidationError('Gift não encontrado');
+    this.ensureActiveGift(gift);
+
+    const pinHash = hashPin(pin);
+    if (gift.pin_hash !== pinHash) {
+      throw new ValidationError('PIN inválido');
+    }
+    return gift;
+  }
+
   async listGifts(): Promise<Gift[]> {
     return giftRepository.list();
   }

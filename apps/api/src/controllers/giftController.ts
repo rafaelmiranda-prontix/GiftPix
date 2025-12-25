@@ -88,6 +88,37 @@ class GiftController {
     }
   }
 
+  async validateCode(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { referenceId } = req.params;
+      const { pin } = req.body;
+      const gift = await giftService.validatePin(referenceId, pin);
+
+      res.status(200).json({
+        success: true,
+        data: {
+          gift: {
+            reference_id: gift.reference_id,
+            amount: gift.amount,
+            status: gift.status,
+            message: gift.message,
+            expires_at: gift.expires_at,
+            created_at: gift.created_at,
+          },
+        },
+      } as ApiResponse);
+    } catch (error) {
+      if (error instanceof ValidationError) {
+        res.status(400).json({
+          success: false,
+          error: { code: 'VALIDATION_ERROR', message: error.message },
+        } as ApiResponse);
+        return;
+      }
+      next(error);
+    }
+  }
+
   async list(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const gifts = await giftService.listGifts();
@@ -133,7 +164,7 @@ class GiftController {
         return;
       }
 
-      const url = `${config.frontendUrl}/status?ref=${referenceId}`;
+      const url = `${config.frontendUrl}/redeem?ref=${referenceId}`;
       const dataUrl = await QRCode.toDataURL(url, {
         errorCorrectionLevel: 'H',
         type: 'image/png',

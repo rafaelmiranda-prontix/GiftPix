@@ -133,6 +133,11 @@ router.post(
   authenticateApiKey,
   giftController.redeem.bind(giftController)
 );
+router.post(
+  '/gifts/:referenceId/validate-code',
+  authenticateApiKey,
+  giftController.validateCode.bind(giftController)
+);
 router.get(
   '/gifts/:referenceId',
   authenticateApiKey,

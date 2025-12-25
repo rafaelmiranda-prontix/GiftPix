@@ -80,7 +80,7 @@ export default function GiftDetailPage({ params }: { params: { reference: string
 
   const shareUrl = useMemo(() => {
     const base = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
-    return `${base}/status?ref=${reference}`;
+    return `${base}/redeem?ref=${reference}`;
   }, [reference]);
 
   const fetchDetail = useCallback(async () => {
