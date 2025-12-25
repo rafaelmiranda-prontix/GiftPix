@@ -66,6 +66,14 @@ export const giftRedemptionRepository = {
     return redemption ? mapToDomain(redemption) : null;
   },
 
+  async findLatestByGiftId(gift_id: string): Promise<DomainRedemption | null> {
+    const redemption = await prisma.giftRedemption.findFirst({
+      where: { giftId: gift_id },
+      orderBy: { createdAt: 'desc' },
+    });
+    return redemption ? mapToDomain(redemption) : null;
+  },
+
   async updateStatus(
     id: string,
     status: RedemptionStatus,

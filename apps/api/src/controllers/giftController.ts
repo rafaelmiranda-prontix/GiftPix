@@ -1,7 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { giftService } from '../services/giftService';
 import { ValidationError } from '../utils/validators';
-import { giftRepository } from '../repositories/giftRepository';
 import { ApiResponse } from '../types';
 
 class GiftController {
@@ -76,18 +75,11 @@ class GiftController {
   async getStatus(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const { referenceId } = req.params;
-      const gift = await giftRepository.findByReferenceId(referenceId);
-      if (!gift) {
-        res.status(404).json({
-          success: false,
-          error: { code: 'NOT_FOUND', message: 'Gift não encontrado' },
-        } as ApiResponse);
-        return;
-      }
+      const status = await giftService.getGiftStatus(referenceId);
 
       res.status(200).json({
         success: true,
-        data: gift,
+        data: status,
       } as ApiResponse);
     } catch (error) {
       next(error);

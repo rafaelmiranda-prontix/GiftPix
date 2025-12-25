@@ -4,7 +4,7 @@ import { giftRedemptionRepository } from '../repositories/giftRedemptionReposito
 import { paymentRepository } from '../repositories/paymentRepository';
 import { transactionRepository } from '../repositories/transactionRepository';
 import { providerFactory } from './providerFactory';
-import { Gift, ProviderName, ProviderTransferResponse } from '../types';
+import { Gift, ProviderName, ProviderStatus, ProviderTransferResponse } from '../types';
 import { validatePixKey, validateAmount, ValidationError, sanitizeDescription } from '../utils/validators';
 import { logger } from '../utils/logger';
 import { config } from '../config/env';
@@ -135,20 +135,63 @@ class GiftService {
     }
 
     // Atualizar registros
-    await giftRedemptionRepository.updateStatus(redemption.id, 'completed', {
+    await giftRedemptionRepository.updateStatus(redemption.id, transfer.status === 'failed' ? 'failed' : 'completed', {
       provider_ref: transfer.id,
     });
 
-    await paymentRepository.updateStatus(payment.id, 'completed', { provider_ref: transfer.id });
+    await paymentRepository.updateStatus(payment.id, transfer.status === 'failed' ? 'failed' : 'completed', {
+      provider_ref: transfer.id,
+    });
 
-    await giftRepository.updateStatus(gift.id, 'redeemed');
+    if (transfer.status === 'completed') {
+      await giftRepository.updateStatus(gift.id, 'redeemed');
+    }
 
     await transactionRepository.update(gift.reference_id, {
-      status: 'completed',
+      status: transfer.status,
       provider_transaction_id: transfer.id,
     });
 
     return { provider: config.provider, transfer };
+  }
+
+  async getGiftStatus(reference_id: string): Promise<{ gift: Gift; paymentStatus?: ProviderStatus; providerRef?: string }> {
+    const gift = await giftRepository.findByReferenceId(reference_id);
+    if (!gift) throw new ValidationError('Gift não encontrado');
+
+    const payment = await paymentRepository.findByGiftId(gift.id);
+    if (!payment) return { gift };
+
+    let latestStatus = payment.status as ProviderStatus;
+    let providerRef = payment.provider_ref;
+
+    // Se houver provider_ref e status pendente, consultar provider
+    if (payment.provider_ref && payment.status === 'pending') {
+      const provider = providerFactory.getProviderByName(payment.provider);
+      try {
+        const providerStatus = await provider.getTransferStatus(payment.provider_ref);
+        latestStatus = providerStatus.status as ProviderStatus;
+        providerRef = providerStatus.id;
+
+        await paymentRepository.updateStatus(payment.id, latestStatus, { provider_ref: providerStatus.id });
+
+        if (latestStatus === 'completed') {
+          await giftRepository.updateStatus(gift.id, 'redeemed');
+        }
+
+        await transactionRepository.update(reference_id, {
+          status: latestStatus,
+          provider_transaction_id: providerStatus.id,
+        });
+      } catch (error) {
+        logger.warn('Failed to refresh provider status', {
+          reference_id,
+          error: error instanceof Error ? error.message : 'Unknown error',
+        });
+      }
+    }
+
+    return { gift: { ...gift, status: latestStatus === 'completed' ? 'redeemed' : gift.status }, paymentStatus: latestStatus, providerRef };
   }
 }
 

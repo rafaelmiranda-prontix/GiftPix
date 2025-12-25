@@ -72,7 +72,7 @@ export const paymentRepository = {
   },
 
   async findByGiftId(gift_id: string): Promise<DomainPayment | null> {
-    const payment = await prisma.payment.findFirst({ where: { giftId: gift_id } });
+    const payment = await prisma.payment.findFirst({ where: { giftId: gift_id }, orderBy: { createdAt: 'desc' } });
     return payment ? mapToDomain(payment) : null;
   },
 

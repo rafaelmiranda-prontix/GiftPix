@@ -16,6 +16,38 @@ interface Gift {
   created_at?: string;
 }
 
+interface GiftStatusResponse {
+  gift: Gift;
+  paymentStatus?: 'pending' | 'completed' | 'failed';
+  providerRef?: string;
+}
+
+type ToastType = 'success' | 'error' | 'info';
+interface Toast {
+  id: string;
+  message: string;
+  type: ToastType;
+}
+
+const translateStatus = (status: string | undefined): string => {
+  switch (status) {
+    case 'active':
+      return 'Ativo';
+    case 'redeemed':
+      return 'Resgatado';
+    case 'expired':
+      return 'Expirado';
+    case 'pending':
+      return 'Em processamento';
+    case 'completed':
+      return 'Concluído';
+    case 'failed':
+      return 'Falhou';
+    default:
+      return status || '—';
+  }
+};
+
 export default function Home() {
   const [sessionEmail, setSessionEmail] = useState<string | null>(null);
   const [authError, setAuthError] = useState<string | null>(null);
@@ -42,9 +74,19 @@ export default function Home() {
   const [redeemError, setRedeemError] = useState<string | null>(null);
   const [isRedeeming, setIsRedeeming] = useState(false);
 
-  const [statusData, setStatusData] = useState<Gift | null>(null);
+  const [statusData, setStatusData] = useState<GiftStatusResponse | null>(null);
   const [statusError, setStatusError] = useState<string | null>(null);
   const [isStatusLoading, setIsStatusLoading] = useState(false);
+
+  const [toasts, setToasts] = useState<Toast[]>([]);
+
+  const pushToast = (message: string, type: ToastType = 'info') => {
+    const id = crypto.randomUUID();
+    setToasts((prev) => [...prev, { id, message, type }]);
+    setTimeout(() => {
+      setToasts((prev) => prev.filter((t) => t.id !== id));
+    }, 3200);
+  };
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
@@ -103,8 +145,10 @@ export default function Home() {
         reference_id: data.data.gift.reference_id,
         pin: data.data.pin,
       });
+      pushToast('Gift criado com sucesso!', 'success');
     } catch (error) {
       setCreateError(error instanceof Error ? error.message : 'Erro desconhecido');
+      pushToast(error instanceof Error ? error.message : 'Erro desconhecido', 'error');
     } finally {
       setIsCreating(false);
     }
@@ -127,8 +171,10 @@ export default function Home() {
       const data = await resp.json();
       if (!resp.ok) throw new Error(data?.error?.message || 'Erro ao resgatar gift');
       setRedeemResult(data.data);
+      pushToast('Resgate processado. Verifique o status do Pix.', 'success');
     } catch (error) {
       setRedeemError(error instanceof Error ? error.message : 'Erro desconhecido');
+      pushToast(error instanceof Error ? error.message : 'Erro desconhecido', 'error');
     } finally {
       setIsRedeeming(false);
     }
@@ -141,10 +187,14 @@ export default function Home() {
     try {
       const resp = await fetch(`/api/gifts/${referenceId}`);
       const data = await resp.json();
-      if (!resp.ok) throw new Error(data?.error?.message || 'Erro ao consultar');
-      setStatusData(data.data);
+      if (!resp.ok || data?.success === false || !data?.data?.gift) {
+        throw new Error(data?.error?.message || 'Erro ao consultar');
+      }
+      setStatusData(data.data as GiftStatusResponse);
+      pushToast('Status atualizado', 'info');
     } catch (error) {
       setStatusError(error instanceof Error ? error.message : 'Erro desconhecido');
+      pushToast(error instanceof Error ? error.message : 'Erro desconhecido', 'error');
     } finally {
       setIsStatusLoading(false);
     }
@@ -152,6 +202,7 @@ export default function Home() {
 
   return (
     <main className="mx-auto flex min-h-screen max-w-6xl flex-col gap-8 px-4 py-12 sm:py-16">
+      <ToastStack toasts={toasts} />
       <header className="grid gap-6 lg:grid-cols-[1.6fr_1fr] lg:items-center">
         <div className="space-y-4">
           <div className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-cyan-200">
@@ -316,11 +367,21 @@ export default function Home() {
           </div>
           {statusData && (
             <div className="mt-3 rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm text-slate-800">
-              <p><strong>Reference ID:</strong> {statusData.reference_id}</p>
-              <p><strong>Status:</strong> {statusData.status}</p>
-              <p><strong>Valor:</strong> R$ {statusData.amount?.toFixed(2)}</p>
-              {statusData.message && <p><strong>Mensagem:</strong> {statusData.message}</p>}
-              {statusData.expires_at && <p><strong>Expira em:</strong> {new Date(statusData.expires_at).toLocaleString()}</p>}
+              {statusData.gift ? (
+                <>
+                  <p><strong>Reference ID:</strong> {statusData.gift.reference_id}</p>
+                  <p><strong>Status do Gift:</strong> {translateStatus(statusData.gift.status)}</p>
+                  <p><strong>Status do Pix:</strong> {translateStatus(statusData.paymentStatus)}</p>
+                  {statusData.providerRef && <p><strong>ID Transfer:</strong> {statusData.providerRef}</p>}
+                  <p><strong>Valor:</strong> R$ {statusData.gift.amount?.toFixed(2)}</p>
+                  {statusData.gift.message && <p><strong>Mensagem:</strong> {statusData.gift.message}</p>}
+                  {statusData.gift.expires_at && (
+                    <p><strong>Expira em:</strong> {new Date(statusData.gift.expires_at).toLocaleString()}</p>
+                  )}
+                </>
+              ) : (
+                <p className="text-rose-600">Gift não encontrado</p>
+              )}
             </div>
           )}
         </Card>
@@ -400,5 +461,32 @@ function AuthPanel({
         {error && <p className="text-xs text-rose-200">{error}</p>}
       </div>
     </Card>
+  );
+}
+
+function ToastStack({ toasts }: { toasts: Toast[] }) {
+  if (toasts.length === 0) return null;
+  return (
+    <div className="fixed right-4 top-4 z-50 flex max-w-sm flex-col gap-2">
+      {toasts.map((toast) => (
+        <div
+          key={toast.id}
+          className="flex items-start gap-2 rounded-xl border border-white/20 bg-white/20 px-3 py-2 text-sm text-white shadow-lg backdrop-blur"
+        >
+          <span
+            className={
+              toast.type === 'success'
+                ? 'text-emerald-200'
+                : toast.type === 'error'
+                ? 'text-rose-200'
+                : 'text-cyan-200'
+            }
+          >
+            ●
+          </span>
+          <span className="leading-tight">{toast.message}</span>
+        </div>
+      ))}
+    </div>
   );
 }
