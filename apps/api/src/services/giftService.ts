@@ -9,6 +9,7 @@ import { validatePixKey, validateAmount, ValidationError, sanitizeDescription } 
 import { logger } from '../utils/logger';
 import { config } from '../config/env';
 import crypto from 'crypto';
+import { notificationService } from './notificationService';
 
 const hashPin = (pin: string): string => {
   return crypto.createHash('sha256').update(pin).digest('hex');
@@ -73,6 +74,16 @@ class GiftService {
       provider,
       descricao: sanitizeDescription(input.description || input.message || ''),
     });
+
+    if (config.notifications.defaultRecipient) {
+      notificationService
+        .notifyGiftCreated(config.notifications.defaultRecipient, {
+          reference_id: referenceId,
+          amount: input.amount,
+          created_at: gift.created_at,
+        })
+        .catch((err) => logger.warn('notification failed: gift created', { err }));
+    }
 
     logger.info('Gift created', { reference_id: referenceId, provider, amount: input.amount });
     return { gift, pin: input.pin };
@@ -169,6 +180,14 @@ class GiftService {
 
     if (transfer.status === 'completed') {
       await giftRepository.updateStatus(gift.id, 'redeemed');
+      if (config.notifications.defaultRecipient) {
+        notificationService
+          .notifyGiftRedeemed(config.notifications.defaultRecipient, {
+            reference_id: gift.reference_id,
+            amount: gift.amount,
+          })
+          .catch((err) => logger.warn('notification failed: gift redeemed', { err }));
+      }
     }
 
     await transactionRepository.update(gift.reference_id, {

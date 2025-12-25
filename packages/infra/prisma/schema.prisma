@@ -90,6 +90,39 @@ model TransactionLog {
   @@map("transaction_log")
 }
 
+model Notification {
+  id            String          @id @default(uuid())
+  giftId        String?         @map("gift_id")
+  type          NotificationType
+  channel       NotificationChannel
+  recipient     String
+  status        NotificationStatus @default(PENDING)
+  sentAt        DateTime?       @map("sent_at")
+  createdAt     DateTime        @default(now()) @map("created_at")
+  errorMessage  String?         @map("error_message")
+
+  @@index([giftId])
+  @@index([type, channel])
+  @@map("notification")
+}
+
+enum NotificationType {
+  GIFT_CREATED
+  GIFT_REDEEMED
+  GIFT_EXPIRED
+}
+
+enum NotificationChannel {
+  EMAIL
+  IN_APP
+}
+
+enum NotificationStatus {
+  PENDING
+  SENT
+  FAILED
+}
+
 enum GiftStatus {
   ACTIVE
   REDEEMED

@@ -21,6 +21,10 @@ interface EnvConfig {
   provider: 'asaas' | 'pagbank';
   requirePaymentConfirmation: boolean;
   frontendUrl: string;
+  notifications: {
+    defaultRecipient?: string;
+    fromEmail?: string;
+  };
   asaas: {
     apiUrl: string;
     apiKey: string;
@@ -63,6 +67,10 @@ export const config: EnvConfig = {
   provider: (getEnvVar('PAYMENT_PROVIDER', 'asaas') as 'asaas' | 'pagbank'),
   requirePaymentConfirmation: getEnvVar('REQUIRE_PAYMENT_CONFIRMATION', 'false') === 'true',
   frontendUrl: getEnvVar('FRONTEND_BASE_URL', 'http://localhost:3000'),
+  notifications: {
+    defaultRecipient: process.env.NOTIFICATION_DEFAULT_RECIPIENT,
+    fromEmail: process.env.NOTIFICATION_FROM_EMAIL,
+  },
   asaas: {
     apiUrl: getEnvVar('ASAAS_API_URL', 'https://sandbox.asaas.com/api'),
     apiKey: getEnvVar('ASAAS_API_KEY', ''),
