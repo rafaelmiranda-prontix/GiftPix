@@ -3,13 +3,15 @@ import { cva, type VariantProps } from 'class-variance-authority';
 import { cn } from '../lib/cn';
 
 const buttonVariants = cva(
-  'inline-flex items-center justify-center gap-2 rounded-md font-medium transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 disabled:opacity-50 disabled:cursor-not-allowed',
+  'inline-flex items-center justify-center gap-2 rounded-md font-semibold transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 disabled:opacity-60 disabled:cursor-not-allowed',
   {
     variants: {
       intent: {
-        primary: 'bg-slate-900 text-white hover:bg-slate-800 focus-visible:outline-slate-900',
-        secondary: 'bg-white text-slate-900 border border-slate-200 hover:bg-slate-50 focus-visible:outline-slate-900',
-        ghost: 'bg-transparent text-slate-900 hover:bg-slate-100',
+        primary:
+          'bg-blue-600 text-white shadow-sm hover:bg-blue-500 focus-visible:outline-blue-700 focus-visible:ring-4 focus-visible:ring-blue-200',
+        secondary:
+          'bg-white text-slate-900 border border-slate-200 hover:bg-slate-50 focus-visible:outline-blue-700 focus-visible:ring-4 focus-visible:ring-blue-100',
+        ghost: 'bg-transparent text-slate-900 hover:bg-blue-50',
       },
       size: {
         sm: 'h-9 px-3 text-sm',

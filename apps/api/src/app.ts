@@ -28,17 +28,18 @@ export const createApp = (): Application => {
         return;
       }
 
-      // Se há origens configuradas, verificar
+      // Produção: se há lista de origens, só permitir as configuradas
       if (config.cors.allowedOrigins.length > 0) {
         if (config.cors.allowedOrigins.includes(origin)) {
           callback(null, true);
-        } else {
-          callback(new Error('Not allowed by CORS'));
+          return;
         }
-      } else {
-        // Se não há origens configuradas, permitir todas (não recomendado para produção)
-        callback(null, true);
+        callback(new Error('Not allowed by CORS'));
+        return;
       }
+
+      // Lista vazia em produção: bloquear cross-origin para evitar CORS aberto
+      callback(new Error('CORS not configured'));
     },
     methods: ['GET', 'POST'],
     allowedHeaders: ['Content-Type', 'x-api-key'],

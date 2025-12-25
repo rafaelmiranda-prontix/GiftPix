@@ -77,3 +77,4 @@ RLS: políticas service_role-only já aplicadas (ver `migrations/rls.sql`).
 - Render: `render.yaml` usa npm e workspace `@giftpix/api`; start: `node apps/api/dist/server.js`.
 - Garanta envs: DB URLs (Supabase), providers, `API_SECRET_KEY`, `PORT` (ou deixe Render injetar), API keys.
 - Prisma: `npm run prisma:generate --workspace @giftpix/infra` e `npm run build --workspace @giftpix/api` já estão no buildCommand do Render.
+- Segurança: veja `docs/SECRETS.md` (uso de service role no backend, RLS ativa, API keys e proxies do frontend).

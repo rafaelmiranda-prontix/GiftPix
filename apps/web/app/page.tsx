@@ -66,6 +66,14 @@ export default function Home() {
     setIsLoadingAuth(false);
   };
 
+  const handleSignUp = async (email: string, password: string) => {
+    setIsLoadingAuth(true);
+    setAuthError(null);
+    const { error } = await supabase.auth.signUp({ email, password });
+    if (error) setAuthError(error.message);
+    setIsLoadingAuth(false);
+  };
+
   const handleSignOut = async () => {
     await supabase.auth.signOut();
     setSessionEmail(null);
@@ -143,16 +151,48 @@ export default function Home() {
   };
 
   return (
-    <main className="mx-auto flex min-h-screen max-w-6xl flex-col gap-8 px-4 py-10 sm:py-14">
-      <header className="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
-        <div className="space-y-2">
-          <p className="text-sm font-semibold uppercase tracking-wide text-cyan-200">GiftPix</p>
-          <h1 className="text-3xl font-bold text-white sm:text-4xl">Presenteie com Pix com experiência de gift card</h1>
-          <p className="max-w-2xl text-slate-200">
-            Crie um gift, compartilhe o PIN e o destinatário resgata com sua chave Pix. Liquidação via Asaas ou PagBank.
+    <main className="mx-auto flex min-h-screen max-w-6xl flex-col gap-8 px-4 py-12 sm:py-16">
+      <header className="grid gap-6 lg:grid-cols-[1.6fr_1fr] lg:items-center">
+        <div className="space-y-4">
+          <div className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-cyan-200">
+            GiftPix · Powered by Pix
+          </div>
+          <h1 className="text-4xl font-bold leading-tight text-white sm:text-5xl">
+            Presentes instantâneos com cara de gift card, liquidados via Pix.
+          </h1>
+          <p className="max-w-2xl text-lg text-slate-100">
+            Crie um gift, compartilhe o PIN e o destinatário resgata com sua chave Pix. Segurança, logs e RLS com Supabase.
           </p>
+          <div className="flex flex-wrap gap-2 text-sm text-cyan-100">
+            <span className="rounded-full bg-white/10 px-3 py-1">Asaas / PagBank</span>
+            <span className="rounded-full bg-white/10 px-3 py-1">PIN + Pix Key</span>
+            <span className="rounded-full bg-white/10 px-3 py-1">Prisma + Supabase</span>
+          </div>
+          <div className="flex flex-wrap gap-3">
+            <Button intent="primary" size="lg" onClick={createGift} disabled={isCreating || !createPayload.pin}>
+              {isCreating ? 'Criando gift...' : 'Criar gift agora'}
+            </Button>
+            <Button intent="secondary" size="lg" onClick={redeemGift} disabled={isRedeeming}>
+              {isRedeeming ? 'Processando...' : 'Resgatar gift'}
+            </Button>
+          </div>
+          {createError && <p className="text-sm text-rose-200">{createError}</p>}
+          {createResult && (
+            <div className="flex flex-wrap items-center gap-3 rounded-xl bg-white/10 px-4 py-3 text-sm text-white">
+              <span className="font-semibold text-cyan-100">Gift criado!</span>
+              <span>Reference ID: {createResult.reference_id}</span>
+              <span>PIN: {createResult.pin}</span>
+            </div>
+          )}
         </div>
-        <AuthPanel onSignIn={handleSignIn} onSignOut={handleSignOut} sessionEmail={sessionEmail} isLoading={isLoadingAuth} error={authError} />
+        <AuthPanel
+          onSignIn={handleSignIn}
+          onSignUp={handleSignUp}
+          onSignOut={handleSignOut}
+          sessionEmail={sessionEmail}
+          isLoading={isLoadingAuth}
+          error={authError}
+        />
       </header>
 
       {!canUseApp ? (
@@ -163,7 +203,7 @@ export default function Home() {
         </Card>
       ) : (
         <div className="grid gap-6 lg:grid-cols-2">
-          <Card className="bg-white/90">
+          <Card className="bg-gradient-to-br from-white to-slate-50/80">
             <SectionTitle title="Criar Gift" subtitle="Defina valor, mensagem e PIN para compartilhar." />
             <div className="mt-4 space-y-3">
               <div className="grid gap-3 sm:grid-cols-2">
@@ -215,7 +255,7 @@ export default function Home() {
             </div>
           </Card>
 
-          <Card className="bg-white/90">
+          <Card className="bg-gradient-to-br from-white to-slate-50/80">
             <SectionTitle title="Resgatar Gift" subtitle="Valide PIN e informe a chave Pix para receber." />
             <div className="mt-4 space-y-3">
               <Input
@@ -260,7 +300,7 @@ export default function Home() {
       )}
 
       {canUseApp && (
-        <Card className="bg-white/80">
+        <Card className="bg-gradient-to-br from-white to-slate-50/80">
           <SectionTitle title="Status do Gift" subtitle="Consulte a situação de um gift já criado." />
           <div className="mt-4 flex flex-col gap-3 sm:flex-row">
             <Input
@@ -301,18 +341,21 @@ function SectionTitle({ title, subtitle }: { title: string; subtitle?: string })
 function AuthPanel({
   sessionEmail,
   onSignIn,
+  onSignUp,
   onSignOut,
   isLoading,
   error,
 }: {
   sessionEmail: string | null;
   onSignIn: (email: string, password: string) => void;
+  onSignUp: (email: string, password: string) => void;
   onSignOut: () => void;
   isLoading: boolean;
   error: string | null;
 }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [isRegister, setIsRegister] = useState(false);
 
   if (sessionEmail) {
     return (
@@ -341,9 +384,19 @@ function AuthPanel({
           value={password}
           onChange={(e) => setPassword(e.target.value)}
         />
-        <Button intent="primary" size="sm" onClick={() => onSignIn(email, password)} disabled={isLoading}>
-          {isLoading ? 'Entrando...' : 'Entrar'}
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            intent="primary"
+            size="sm"
+            onClick={() => (isRegister ? onSignUp(email, password) : onSignIn(email, password))}
+            disabled={isLoading}
+          >
+            {isLoading ? 'Processando...' : isRegister ? 'Criar conta' : 'Entrar'}
+          </Button>
+          <Button intent="secondary" size="sm" onClick={() => setIsRegister(!isRegister)} disabled={isLoading}>
+            {isRegister ? 'Já tenho conta' : 'Quero registrar'}
+          </Button>
+        </div>
         {error && <p className="text-xs text-rose-200">{error}</p>}
       </div>
     </Card>
