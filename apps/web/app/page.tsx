@@ -1,27 +1,11 @@
 /* eslint-disable @next/next/no-img-element */
 'use client';
 
-import { useEffect, useMemo, useState, useCallback } from 'react';
-import { useSearchParams } from 'next/navigation';
-import { Button, Card, Input } from '@giftpix/ui';
+import Link from 'next/link';
+import { useEffect, useState, useCallback } from 'react';
+import { Button, Card } from '@giftpix/ui';
 import { supabase } from '../lib/supabaseClient';
-
-type GiftStatus = 'active' | 'redeemed' | 'expired';
-
-interface Gift {
-  reference_id: string;
-  amount: number;
-  status: GiftStatus;
-  message?: string;
-  expires_at?: string;
-  created_at?: string;
-}
-
-interface GiftStatusResponse {
-  gift: Gift;
-  paymentStatus?: 'pending' | 'completed' | 'failed';
-  providerRef?: string;
-}
+import { useRouter } from 'next/navigation';
 
 type ToastType = 'success' | 'error' | 'info';
 interface Toast {
@@ -30,106 +14,65 @@ interface Toast {
   type: ToastType;
 }
 
-const translateStatus = (status: string | undefined): string => {
-  switch (status) {
-    case 'active':
-      return 'Ativo';
-    case 'redeemed':
-      return 'Resgatado';
-    case 'expired':
-      return 'Expirado';
-    case 'pending':
-      return 'Em processamento';
-    case 'completed':
-      return 'Concluído';
-    case 'failed':
-      return 'Falhou';
-    default:
-      return status || '—';
-  }
-};
+const howItWorks = [
+  { title: 'Crie o GiftPix', desc: 'Defina valor, mensagem e PIN. O QR/link leva o presenteado ao resgate.', icon: '🎁' },
+  { title: 'Compartilhe', desc: 'Envie QR ou link com o PIN pelo canal que preferir.', icon: '🔗' },
+  { title: 'Resgate via Pix', desc: 'Quem recebe informa PIN + chave Pix e recebe na hora.', icon: '⚡' },
+];
+
+const benefits = [
+  { title: 'Sem chave Pix do destinatário', desc: 'Basta enviar o link + PIN; ele escolhe a chave.' },
+  { title: 'Seguro', desc: 'Uso único, PIN obrigatório, logs e RLS no Supabase.' },
+  { title: 'Experiência de presente', desc: 'Mensagem personalizada e fluxo dedicado a gifts.' },
+  { title: 'Multi-provider', desc: 'Asaas ou PagBank para liquidação Pix.' },
+];
+
+const useCases = ['🎂 Aniversários', '💍 Casamentos', '🎄 Datas comemorativas', '🏆 Premiações e bônus', '🎁 Corporativo'];
+
+const trustPoints = [
+  'O QR/Link não transfere dinheiro sozinho',
+  'PIN obrigatório para resgatar',
+  'Integração Pix via PSP homologado',
+  'Dados protegidos (LGPD)',
+];
 
 export default function Home() {
-  const searchParams = useSearchParams();
+  const router = useRouter();
   const [sessionEmail, setSessionEmail] = useState<string | null>(null);
   const [authError, setAuthError] = useState<string | null>(null);
   const [isLoadingAuth, setIsLoadingAuth] = useState(false);
   const [name, setName] = useState('');
 
-  const [createPayload, setCreatePayload] = useState({
-    amount: '100',
-    pin: '',
-    message: '',
-    description: '',
-    expires_at: '',
-  });
-  const [createResult, setCreateResult] = useState<{ reference_id: string; pin: string } | null>(null);
-  const [createError, setCreateError] = useState<string | null>(null);
-  const [isCreating, setIsCreating] = useState(false);
-
-  const [redeemPayload, setRedeemPayload] = useState({
-    reference_id: '',
-    pin: '',
-    pix_key: '',
-    description: '',
-  });
-  const [redeemResult, setRedeemResult] = useState<Record<string, unknown> | null>(null);
-  const [redeemError, setRedeemError] = useState<string | null>(null);
-  const [isRedeeming, setIsRedeeming] = useState(false);
-
-  const [statusData, setStatusData] = useState<GiftStatusResponse | null>(null);
-  const [statusError, setStatusError] = useState<string | null>(null);
-  const [isStatusLoading, setIsStatusLoading] = useState(false);
-
   const [toasts, setToasts] = useState<Toast[]>([]);
 
-  const pushToast = (message: string, type: ToastType = 'info') => {
+  const pushToast = useCallback((message: string, type: ToastType = 'info') => {
     const id = crypto.randomUUID();
     setToasts((prev) => [...prev, { id, message, type }]);
     setTimeout(() => {
       setToasts((prev) => prev.filter((t) => t.id !== id));
     }, 3200);
-  };
-
-  const fetchStatus = useCallback(async (referenceId: string) => {
-    setIsStatusLoading(true);
-    setStatusError(null);
-    setStatusData(null);
-    try {
-      const resp = await fetch(`/api/gifts/${referenceId}`);
-      const data = await resp.json();
-      if (!resp.ok || data?.success === false || !data?.data?.gift) {
-        throw new Error(data?.error?.message || 'Erro ao consultar');
-      }
-      setStatusData(data.data as GiftStatusResponse);
-      pushToast('Status atualizado', 'info');
-    } catch (error) {
-      setStatusError(error instanceof Error ? error.message : 'Erro desconhecido');
-      pushToast(error instanceof Error ? error.message : 'Erro desconhecido', 'error');
-    } finally {
-      setIsStatusLoading(false);
-    }
   }, []);
 
   useEffect(() => {
+    let redirected = false;
     supabase.auth.getSession().then(({ data }) => {
       setSessionEmail(data.session?.user.email || null);
+      if (data.session && !redirected) {
+        redirected = true;
+        router.push('/dashboard');
+      }
     });
     const { data } = supabase.auth.onAuthStateChange((_event, session) => {
       setSessionEmail(session?.user.email || null);
+      if (session && !redirected) {
+        redirected = true;
+        router.push('/dashboard');
+      }
     });
     return () => {
       data.subscription.unsubscribe();
     };
-  }, []);
-
-  useEffect(() => {
-    const ref = searchParams.get('ref');
-    if (ref) {
-      setRedeemPayload((prev) => ({ ...prev, reference_id: ref }));
-      fetchStatus(ref);
-    }
-  }, [searchParams, fetchStatus]);
+  }, [router]);
 
   const handleSignIn = async (email: string, password: string) => {
     if (!email || !password || password.length < 8) {
@@ -155,6 +98,7 @@ export default function Home() {
       }
       setSessionEmail(data?.data?.user?.email || email);
       pushToast('Login realizado', 'success');
+      router.push('/dashboard');
     } catch (error) {
       setAuthError(error instanceof Error ? error.message : 'Erro desconhecido');
     }
@@ -188,72 +132,6 @@ export default function Home() {
     setSessionEmail(null);
   };
 
-  const canUseApp = useMemo(() => !!sessionEmail, [sessionEmail]);
-
-  const origin =
-    typeof window !== 'undefined'
-      ? window.location.origin
-      : process.env.NEXT_PUBLIC_SITE_URL || '';
-  const shareLink =
-    createResult && origin ? `${origin}/?ref=${createResult.reference_id}` : '';
-
-  const createGift = async () => {
-    setIsCreating(true);
-    setCreateError(null);
-    setCreateResult(null);
-    try {
-      const resp = await fetch('/api/gifts', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          amount: Number(createPayload.amount),
-          pin: createPayload.pin,
-          message: createPayload.message,
-          description: createPayload.description,
-          expires_at: createPayload.expires_at || undefined,
-        }),
-      });
-      const data = await resp.json();
-      if (!resp.ok) throw new Error(data?.error?.message || 'Erro ao criar gift');
-      setCreateResult({
-        reference_id: data.data.gift.reference_id,
-        pin: data.data.pin,
-      });
-      pushToast('Gift criado com sucesso!', 'success');
-    } catch (error) {
-      setCreateError(error instanceof Error ? error.message : 'Erro desconhecido');
-      pushToast(error instanceof Error ? error.message : 'Erro desconhecido', 'error');
-    } finally {
-      setIsCreating(false);
-    }
-  };
-
-  const redeemGift = async () => {
-    setIsRedeeming(true);
-    setRedeemError(null);
-    setRedeemResult(null);
-    try {
-      const resp = await fetch(`/api/gifts/${redeemPayload.reference_id}/redeem`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          pin: redeemPayload.pin,
-          pix_key: redeemPayload.pix_key,
-          description: redeemPayload.description,
-        }),
-      });
-      const data = await resp.json();
-      if (!resp.ok) throw new Error(data?.error?.message || 'Erro ao resgatar gift');
-      setRedeemResult(data.data);
-      pushToast('Resgate processado. Verifique o status do Pix.', 'success');
-    } catch (error) {
-      setRedeemError(error instanceof Error ? error.message : 'Erro desconhecido');
-      pushToast(error instanceof Error ? error.message : 'Erro desconhecido', 'error');
-    } finally {
-      setIsRedeeming(false);
-    }
-  };
-
   return (
     <main className="mx-auto flex min-h-screen max-w-6xl flex-col gap-8 px-4 py-12 sm:py-16">
       <ToastStack toasts={toasts} />
@@ -274,45 +152,17 @@ export default function Home() {
             <span className="rounded-full bg-white/10 px-3 py-1">Prisma + Supabase</span>
           </div>
           <div className="flex flex-wrap gap-3">
-            <Button
-              intent="primary"
-              size="lg"
-              onClick={createGift}
-              disabled={isCreating || !createPayload.pin || Number(createPayload.amount) <= 0}
-            >
-              {isCreating ? 'Criando gift...' : 'Criar gift agora'}
-            </Button>
-            <Button
-              intent="secondary"
-              size="lg"
-              onClick={redeemGift}
-              disabled={isRedeeming || !redeemPayload.reference_id || !redeemPayload.pin || !redeemPayload.pix_key}
-            >
-              {isRedeeming ? 'Processando...' : 'Resgatar gift'}
-            </Button>
+            <Link href="#login">
+              <Button intent="primary" size="lg">
+                Criar meu GiftPix
+              </Button>
+            </Link>
+            <Link href="#como-funciona">
+              <Button intent="secondary" size="lg">
+                Como funciona
+              </Button>
+            </Link>
           </div>
-          {createError && <p className="text-sm text-rose-200">{createError}</p>}
-          {createResult && (
-            <div className="flex flex-wrap items-center gap-3 rounded-xl bg-white/10 px-4 py-3 text-sm text-white">
-              <span className="font-semibold text-cyan-100">Gift criado!</span>
-              <span>Reference ID: {createResult.reference_id}</span>
-              <span>PIN: {createResult.pin}</span>
-              {shareLink && (
-                <button
-                  type="button"
-                  className="rounded-full bg-white/20 px-3 py-1 text-xs font-semibold text-white transition hover:bg-white/30"
-                  onClick={() => {
-                    navigator.clipboard.writeText(shareLink).then(
-                      () => pushToast('Link copiado', 'success'),
-                      () => pushToast('Erro ao copiar', 'error')
-                    );
-                  }}
-                >
-                  Copiar link de resgate
-                </button>
-              )}
-            </div>
-          )}
         </div>
         <AuthPanel
           onSignIn={handleSignIn}
@@ -346,171 +196,100 @@ export default function Home() {
         />
       </header>
 
-      <div className="grid gap-6 lg:grid-cols-2">
-        <Card className="relative bg-gradient-to-br from-white to-slate-50/80">
-          {!canUseApp && (
-            <div className="absolute inset-0 z-10 flex items-center justify-center rounded-2xl bg-white/70 text-sm font-medium text-slate-700">
-              Faça login para criar gifts.
-            </div>
-          )}
-          <SectionTitle title="Criar Gift" subtitle="Defina valor, mensagem e PIN para compartilhar." />
-          <div className="mt-4 space-y-3">
-            <div className="grid gap-3 sm:grid-cols-2">
-              <Input
-                label="Valor (R$)"
-                type="number"
-                min="1"
-                value={createPayload.amount}
-                onChange={(e) => setCreatePayload({ ...createPayload, amount: e.target.value })}
-                disabled={!canUseApp}
-              />
-              <Input
-                label="PIN"
-                type="text"
-                placeholder="Segredo do gift"
-                value={createPayload.pin}
-                onChange={(e) => setCreatePayload({ ...createPayload, pin: e.target.value })}
-                disabled={!canUseApp}
-              />
-            </div>
-            <Input
-              label="Mensagem"
-              placeholder="Feliz aniversário!"
-              value={createPayload.message}
-              onChange={(e) => setCreatePayload({ ...createPayload, message: e.target.value })}
-              disabled={!canUseApp}
-            />
-            <Input
-              label="Descrição (opcional)"
-              placeholder="GiftPix especial"
-              value={createPayload.description}
-              onChange={(e) => setCreatePayload({ ...createPayload, description: e.target.value })}
-              disabled={!canUseApp}
-            />
-            <Input
-              label="Expira em (opcional)"
-              type="datetime-local"
-              value={createPayload.expires_at}
-              onChange={(e) => setCreatePayload({ ...createPayload, expires_at: e.target.value })}
-              disabled={!canUseApp}
-            />
-            <div className="flex items-center justify-between">
-              <Button
-                intent="primary"
-                size="lg"
-                onClick={createGift}
-                disabled={!canUseApp || isCreating || !createPayload.pin || Number(createPayload.amount) <= 0}
-              >
-                {isCreating ? 'Criando...' : 'Criar Gift'}
-              </Button>
-              {createError && <p className="text-sm text-rose-500">{createError}</p>}
-            </div>
-            {createResult && (
-              <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm text-slate-800">
-                <p><strong>Reference ID:</strong> {createResult.reference_id}</p>
-                <p><strong>PIN:</strong> {createResult.pin}</p>
-              </div>
-            )}
+      <section id="como-funciona" className="grid gap-4 rounded-2xl border border-white/10 bg-white/10 p-6 text-white shadow-lg">
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wide text-cyan-200">Como funciona</p>
+            <h2 className="text-2xl font-bold">3 passos para enviar um GiftPix</h2>
           </div>
-        </Card>
-
-        <Card className="bg-gradient-to-br from-white to-slate-50/80">
-          <SectionTitle title="Resgatar Gift" subtitle="Informe PIN e chave Pix para receber." />
-          <div className="mt-2 text-sm text-slate-600">
-            {statusData?.gift?.message
-              ? `Mensagem: ${statusData.gift.message}`
-              : 'Parabéns! Resgate seu GiftPix.'}
-          </div>
-          <div className="mt-4 space-y-3">
-            <Input
-              label="Reference ID"
-              value={redeemPayload.reference_id}
-              onChange={(e) => setRedeemPayload({ ...redeemPayload, reference_id: e.target.value })}
-            />
-            <div className="grid gap-3 sm:grid-cols-2">
-              <Input
-                label="PIN"
-                value={redeemPayload.pin}
-                onChange={(e) => setRedeemPayload({ ...redeemPayload, pin: e.target.value })}
-              />
-              <Input
-                label="Chave Pix"
-                placeholder="email/telefone/CPF/CNPJ/EVP"
-                value={redeemPayload.pix_key}
-                onChange={(e) => setRedeemPayload({ ...redeemPayload, pix_key: e.target.value })}
-              />
-            </div>
-            <Input
-              label="Descrição (opcional)"
-              value={redeemPayload.description}
-              onChange={(e) => setRedeemPayload({ ...redeemPayload, description: e.target.value })}
-            />
-            <div className="flex items-center justify-between">
-              <Button
-                intent="primary"
-                size="lg"
-                onClick={redeemGift}
-                disabled={isRedeeming || !redeemPayload.reference_id || !redeemPayload.pin || !redeemPayload.pix_key}
-              >
-                {isRedeeming ? 'Processando...' : 'Resgatar Gift'}
-              </Button>
-              {redeemError && <p className="text-sm text-rose-500">{redeemError}</p>}
-            </div>
-            {redeemResult && (
-              <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm text-slate-800">
-                <p><strong>Provider:</strong> {redeemResult.provider}</p>
-                <p><strong>ID Transfer:</strong> {redeemResult.transfer?.id}</p>
-                <p><strong>Status:</strong> {redeemResult.transfer?.status}</p>
-              </div>
-            )}
-          </div>
-        </Card>
-      </div>
-
-      <Card className="bg-gradient-to-br from-white to-slate-50/80">
-        <SectionTitle title="Status do Gift" subtitle="Consulte a situação de um gift já criado." />
-        <div className="mt-4 flex flex-col gap-3 sm:flex-row">
-          <Input
-            className="sm:max-w-sm"
-            label="Reference ID"
-            value={redeemPayload.reference_id}
-            onChange={(e) => setRedeemPayload({ ...redeemPayload, reference_id: e.target.value })}
-          />
-          <Button intent="secondary" size="md" onClick={() => fetchStatus(redeemPayload.reference_id)} disabled={isStatusLoading}>
-            {isStatusLoading ? 'Consultando...' : 'Consultar'}
-          </Button>
-          {statusError && <p className="text-sm text-rose-500">{statusError}</p>}
+          <Link href="#gift-flow">
+            <Button intent="secondary" size="sm">
+              Criar agora
+            </Button>
+          </Link>
         </div>
-        {statusData && (
-          <div className="mt-3 rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm text-slate-800">
-            {statusData.gift ? (
-              <>
-                <p><strong>Reference ID:</strong> {statusData.gift.reference_id}</p>
-                <p><strong>Status do Gift:</strong> {translateStatus(statusData.gift.status)}</p>
-                <p><strong>Status do Pix:</strong> {translateStatus(statusData.paymentStatus)}</p>
-                {statusData.providerRef && <p><strong>ID Transfer:</strong> {statusData.providerRef}</p>}
-                <p><strong>Valor:</strong> R$ {statusData.gift.amount?.toFixed(2)}</p>
-                {statusData.gift.message && <p><strong>Mensagem:</strong> {statusData.gift.message}</p>}
-                {statusData.gift.expires_at && (
-                  <p><strong>Expira em:</strong> {new Date(statusData.gift.expires_at).toLocaleString()}</p>
-                )}
-              </>
-            ) : (
-              <p className="text-rose-600">Gift não encontrado</p>
-            )}
-          </div>
-        )}
-      </Card>
-    </main>
-  );
-}
+        <div className="grid gap-4 md:grid-cols-3">
+          {howItWorks.map((item) => (
+            <Card key={item.title} className="bg-white/80">
+              <div className="text-2xl">{item.icon}</div>
+              <h3 className="text-lg font-semibold text-slate-900">{item.title}</h3>
+              <p className="text-sm text-slate-600">{item.desc}</p>
+            </Card>
+          ))}
+        </div>
+      </section>
 
-function SectionTitle({ title, subtitle }: { title: string; subtitle?: string }) {
-  return (
-    <div className="space-y-1">
-      <h2 className="text-xl font-semibold text-slate-900">{title}</h2>
-      {subtitle && <p className="text-sm text-slate-500">{subtitle}</p>}
-    </div>
+      <section id="beneficios" className="grid gap-3">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-wide text-cyan-200">Por que GiftPix</p>
+          <h2 className="text-2xl font-bold text-white">Mais do que um Pix comum</h2>
+        </div>
+        <div className="grid gap-4 md:grid-cols-2">
+          {benefits.map((b) => (
+            <Card key={b.title} className="bg-white/80">
+              <h3 className="text-lg font-semibold text-slate-900">{b.title}</h3>
+              <p className="text-sm text-slate-600">{b.desc}</p>
+            </Card>
+          ))}
+        </div>
+      </section>
+
+      <section id="casos-uso" className="grid gap-3">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-wide text-cyan-200">Casos de uso</p>
+          <h2 className="text-2xl font-bold text-white">Para todas as ocasiões</h2>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          {useCases.map((c) => (
+            <span key={c} className="rounded-full bg-white/10 px-3 py-2 text-sm text-white">
+              {c}
+            </span>
+          ))}
+        </div>
+      </section>
+
+      <section id="seguranca" className="grid gap-3">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-wide text-cyan-200">Segurança & Confiança</p>
+          <h2 className="text-2xl font-bold text-white">Pensado para evitar fraudes e erros</h2>
+        </div>
+        <div className="grid gap-3 md:grid-cols-2">
+          {trustPoints.map((point) => (
+            <Card key={point} className="bg-white/80">
+              <p className="text-sm text-slate-700">{point}</p>
+            </Card>
+          ))}
+        </div>
+      </section>
+
+      <section className="grid gap-4 rounded-2xl border border-white/10 bg-white/10 p-6 text-white shadow-lg">
+        <h2 className="text-2xl font-bold">Pronto para transformar Pix em presente?</h2>
+        <p className="text-sm text-cyan-100">
+          Crie seu primeiro GiftPix agora. Seguro, rápido e com experiência de presente.
+        </p>
+        <div className="flex flex-wrap gap-3">
+          <Link href="#hero">
+            <Button intent="primary" size="lg">
+              Criar meu GiftPix agora
+            </Button>
+          </Link>
+          <Link href="#como-funciona">
+            <Button intent="secondary" size="lg">
+              Ver como funciona
+            </Button>
+          </Link>
+        </div>
+      </section>
+
+      <footer className="mt-4 flex flex-col gap-2 border-t border-white/10 pt-4 text-sm text-slate-200 sm:flex-row sm:items-center sm:justify-between">
+        <span>GiftPix · 2025</span>
+        <div className="flex gap-3">
+          <a className="hover:underline" href="#">Termos de Uso</a>
+          <a className="hover:underline" href="#">Política de Privacidade</a>
+          <a className="hover:underline" href="#">Contato</a>
+        </div>
+      </footer>
+    </main>
   );
 }
 

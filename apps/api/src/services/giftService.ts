@@ -193,6 +193,31 @@ class GiftService {
 
     return { gift: { ...gift, status: latestStatus === 'completed' ? 'redeemed' : gift.status }, paymentStatus: latestStatus, providerRef };
   }
+
+  async listGifts(): Promise<Gift[]> {
+    return giftRepository.list();
+  }
+
+  async getSummary(): Promise<{
+    total: number;
+    redeemed: number;
+    active: number;
+    expired: number;
+    totalAmount: number;
+  }> {
+    const gifts = await giftRepository.list();
+    return gifts.reduce(
+      (acc, gift) => {
+        acc.total += 1;
+        acc.totalAmount += gift.amount;
+        if (gift.status === 'redeemed') acc.redeemed += 1;
+        if (gift.status === 'active') acc.active += 1;
+        if (gift.status === 'expired') acc.expired += 1;
+        return acc;
+      },
+      { total: 0, redeemed: 0, active: 0, expired: 0, totalAmount: 0 }
+    );
+  }
 }
 
 export const giftService = new GiftService();

@@ -85,6 +85,41 @@ class GiftController {
       next(error);
     }
   }
+
+  async list(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const gifts = await giftService.listGifts();
+      res.status(200).json({
+        success: true,
+        data: {
+          gifts: gifts.map((gift) => ({
+            id: gift.id,
+            reference_id: gift.reference_id,
+            amount: gift.amount,
+            status: gift.status,
+            message: gift.message,
+            expires_at: gift.expires_at,
+            created_at: gift.created_at,
+            updated_at: gift.updated_at,
+          })),
+        },
+      } as ApiResponse);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async summary(_req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const summary = await giftService.getSummary();
+      res.status(200).json({
+        success: true,
+        data: summary,
+      } as ApiResponse);
+    } catch (error) {
+      next(error);
+    }
+  }
 }
 
 export const giftController = new GiftController();

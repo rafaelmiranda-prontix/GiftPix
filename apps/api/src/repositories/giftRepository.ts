@@ -85,4 +85,11 @@ export const giftRepository = {
     });
     return mapToDomain(updated);
   },
+
+  async list(): Promise<DomainGift[]> {
+    const gifts = await prisma.gift.findMany({
+      orderBy: { createdAt: 'desc' },
+    });
+    return gifts.map(mapToDomain);
+  },
 };

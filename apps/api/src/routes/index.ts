@@ -126,6 +126,8 @@ router.get(
  * Rotas de Gift (protegidas)
  */
 router.post('/gifts', authenticateApiKey, giftController.create.bind(giftController));
+router.get('/gifts', authenticateApiKey, giftController.list.bind(giftController));
+router.get('/gifts/summary', authenticateApiKey, giftController.summary.bind(giftController));
 router.post(
   '/gifts/:referenceId/redeem',
   authenticateApiKey,
