@@ -23,6 +23,7 @@ model Gift {
   redemptions  GiftRedemption[]
   payments     Payment[]
   pixTransfers PixTransaction[]
+  fraudEvents  FraudEvent[]
 
   @@index([status])
   @@index([expiresAt])
@@ -188,4 +189,31 @@ model SystemConfig {
   updatedAt  DateTime @updatedAt @map("updated_at")
 
   @@map("system_config")
+}
+
+model FraudEvent {
+  id         String   @id @default(uuid())
+  giftId     String?  @map("gift_id")
+  eventType  String   @map("event_type")
+  riskScore  Int      @map("risk_score")
+  ip         String?
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  gift       Gift?    @relation(fields: [giftId], references: [id])
+
+  @@index([giftId])
+  @@index([eventType])
+  @@map("fraud_event")
+}
+
+model FraudBlock {
+  id         String   @id @default(uuid())
+  entityType String   @map("entity_type") // user/ip
+  entityId   String   @map("entity_id")
+  reason     String
+  expiresAt  DateTime @map("expires_at")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  @@index([entityType, entityId])
+  @@map("fraud_block")
 }

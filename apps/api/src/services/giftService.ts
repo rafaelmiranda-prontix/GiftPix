@@ -34,6 +34,7 @@ export interface RedeemGiftInput {
   pin: string;
   pix_key: string;
   description?: string;
+  requester_ip?: string;
 }
 
 export interface RedeemGiftResult {
@@ -47,6 +48,8 @@ class GiftService {
     const referenceId = uuidv4();
     const provider = input.provider || config.provider;
     const pinHash = hashPin(input.pin);
+
+    await fraudService.checkGiftCreation(undefined, input.amount);
 
     const gift = await giftRepository.create({
       reference_id: referenceId,
@@ -74,6 +77,8 @@ class GiftService {
       provider,
       descricao: sanitizeDescription(input.description || input.message || ''),
     });
+
+    await fraudService.markGiftCreated(undefined, gift.id, input.amount);
 
     if (config.notifications.defaultRecipient) {
       notificationService
@@ -105,9 +110,11 @@ class GiftService {
     if (!gift) throw new ValidationError('Gift não encontrado');
 
     this.ensureActiveGift(gift);
+    await fraudService.checkRedeem(input.requester_ip, gift.id);
 
     const pinHash = hashPin(input.pin);
     if (gift.pin_hash !== pinHash) {
+      await fraudService.markRedeemAttempt(input.requester_ip, gift.id, 20);
       throw new ValidationError('PIN inválido');
     }
 

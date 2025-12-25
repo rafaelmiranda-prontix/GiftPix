@@ -53,6 +53,7 @@ class GiftController {
         pin,
         pix_key,
         description,
+        requester_ip: req.ip || (req.headers['x-forwarded-for'] as string) || undefined,
       });
 
       res.status(200).json({
