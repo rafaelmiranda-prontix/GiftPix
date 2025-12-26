@@ -4,8 +4,16 @@
 
 :root {
   color-scheme: light;
+  --color-primary: #d32f2f; /* vermelho intenso */
+  --color-gold: #c9a24d;    /* dourado suave */
+  --color-bg: #f7f7f7;      /* fundo claro alto contraste */
+  --color-surface: #ffffff; /* cartões */
+  --color-text: #1f1f1f;    /* texto principal */
+  --color-muted: #4b5563;   /* texto secundário */
 }
 
 body {
   font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  background: var(--color-bg);
+  color: var(--color-text);
 }

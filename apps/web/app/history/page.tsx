@@ -4,6 +4,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Button, Card } from '@giftpix/ui';
 import Link from 'next/link';
+import { supabase } from '../../lib/supabaseClient';
+import { useRouter } from 'next/navigation';
 
 type GiftStatus = 'active' | 'redeemed' | 'expired' | 'refunded';
 type PaymentStatus = 'pending' | 'processing' | 'completed' | 'failed' | 'refunded' | undefined;
@@ -42,12 +44,21 @@ const paymentLabel: Record<NonNullable<PaymentStatus>, string> = {
 };
 
 export default function HistoryPage() {
+  const router = useRouter();
   const [items, setItems] = useState<HistoryItem[]>([]);
   const [summary, setSummary] = useState<Summary | null>(null);
   const [statusFilter, setStatusFilter] = useState<GiftStatus | 'all'>('all');
   const [periodFilter, setPeriodFilter] = useState<'7' | '30' | '90' | 'all'>('30');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data }) => {
+      if (!data.session) {
+        router.push('/#login');
+      }
+    });
+  }, [router]);
 
   const fetchData = async () => {
     setIsLoading(true);
